@@ -150,7 +150,9 @@ project/
 
 ### AI Service
 cd edge_ai
+
 pip install -r requirements.txt
+
 python server.py
 
 
