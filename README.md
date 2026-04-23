@@ -69,7 +69,6 @@
 
 - STM32F103VET6 微控制器
 - 触摸屏液晶显示器
-- 串行通信模块（UART / WiFi）
 
 ---
 
@@ -100,63 +99,7 @@ Edge AI Service:
 用户闲置设备未操作
 → AI 角色产生无聊情绪并主动发起对话
 
----
-
-## 📂 项目结构
-project/
-
-├── firmware/
-
-│ ├── drivers/
-
-│ ├── ui/
-
-│ ├── animation/
-
-│ └── ai/
-
-│
-
-├── edge_ai/
-
-│ ├── agent/
-
-│ ├── memory/
-
-│ └── dialogue/
-
-│
-
-├── docs/
-
-│ ├── architecture.md
-
-│ └── protocol.md
-
-│
-
-└── README.md
-
-
----
-
-## 🚀 快速开始
-
-### 固件部署
-
-1. 在 STM32CubeIDE 中打开项目
-2. 编译固件代码
-3. 将固件烧录至 STM32 开发板
-
-### AI Service
-cd edge_ai
-
-pip install -r requirements.txt
-
-python server.py
-
-
----
+------
 
 ## 📊 未来优化方向
 
