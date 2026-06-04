@@ -23,7 +23,7 @@
  * 如果长按太难触发，就调小 KEY_LONG_COUNT。
  * 如果太容易触发，就调大。
  */
-#define KEY_DEBOUNCE_COUNT  200
+#define KEY_DEBOUNCE_COUNT  3
 #define KEY_LONG_COUNT      50000
 
 typedef struct
@@ -127,58 +127,49 @@ static KeyEvent Key_UpdateOne(KeyState *state, uint8_t level, KeyEvent short_eve
     }
 
     /*
-     * 稳定电平发生变化
+     * 稳定电平变化
      */
     if (level != state->stable_level)
     {
         state->stable_level = level;
 
-        /*
-         * 刚按下：开始计数
-         */
         if (state->stable_level == KEY_PRESSED)
         {
             state->press_count = 0;
             state->long_reported = 0;
-            return KEY_EVENT_NONE;
         }
-
-        /*
-         * 刚松开：根据按下持续时间判断短按/长按
-         * 注意：长按事件也在松手后触发，避免一按下就立刻执行
-         */
-        if (state->stable_level == KEY_RELEASED)
+        else
         {
-            KeyEvent event;
-
-            if (state->press_count >= KEY_LONG_COUNT)
+            /*
+             * 松手时，如果没有触发过长按，就认为是短按
+             */
+            if (!state->long_reported && state->press_count > 0)
             {
-                event = long_event;
-            }
-            else if (state->press_count > 0)
-            {
-                event = short_event;
-            }
-            else
-            {
-                event = KEY_EVENT_NONE;
+                state->press_count = 0;
+                return short_event;
             }
 
             state->press_count = 0;
             state->long_reported = 0;
-
-            return event;
         }
+
+        return KEY_EVENT_NONE;
     }
 
     /*
-     * 稳定按下期间只计数，不立刻触发长按事件
+     * 稳定按下期间计数
      */
     if (state->stable_level == KEY_PRESSED)
     {
         if (state->press_count < 0xFFFF)
         {
             state->press_count++;
+        }
+
+        if (!state->long_reported && state->press_count >= KEY_LONG_COUNT)
+        {
+            state->long_reported = 1;
+            return long_event;
         }
     }
 

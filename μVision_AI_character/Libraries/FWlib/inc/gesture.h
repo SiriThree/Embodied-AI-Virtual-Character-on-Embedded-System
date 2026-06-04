@@ -16,5 +16,6 @@ typedef enum
 
 void Gesture_Init(void);
 GestureType Gesture_Update(void);
+uint8_t Gesture_GetLastPoint(uint16_t *x, uint16_t *y);
 
 #endif

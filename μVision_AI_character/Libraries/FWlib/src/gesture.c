@@ -19,6 +19,9 @@ static uint16_t g_point_count = 0;
 
 static uint8_t g_is_touching = 0;
 static uint16_t g_press_count = 0;
+static uint8_t g_last_point_valid = 0;
+static uint16_t g_last_point_x = 0;
+static uint16_t g_last_point_y = 0;
 
 static void Gesture_Reset(void);
 static void Gesture_AddPoint(int16_t x, int16_t y);
@@ -28,6 +31,18 @@ static GestureType Gesture_Analyze(void);
 void Gesture_Init(void)
 {
     Gesture_Reset();
+}
+
+uint8_t Gesture_GetLastPoint(uint16_t *x, uint16_t *y)
+{
+    if (!g_last_point_valid)
+    {
+        return 0;
+    }
+
+    *x = g_last_point_x;
+    *y = g_last_point_y;
+    return 1;
 }
 
 
@@ -115,6 +130,10 @@ static void Gesture_AddPoint(int16_t x, int16_t y)
     g_points[g_point_count].x = x;
     g_points[g_point_count].y = y;
     g_point_count++;
+
+    g_last_point_x = (uint16_t)x;
+    g_last_point_y = (uint16_t)y;
+    g_last_point_valid = 1;
 }
 
 
