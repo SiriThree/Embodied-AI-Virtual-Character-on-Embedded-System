@@ -201,6 +201,26 @@ static bool buildSerialPacketFromHex(JsonDocument &respDoc, uint8_t *buf, size_t
   return true;
 }
 
+static void buildFallbackPacket(uint8_t *buf, size_t &len, bool unknownScene) {
+  const char *replyHex = unknownScene ? "ced2cfc8c5e3c4e3cbe6b1e3c1c4c1c4" : "ced2cfc8c5e3c4e3bcccd0f8c1c4d1bd";
+  const char *opt1Hex = unknownScene ? "c4c7c4e3cfc8bfaabfdad1bd" : "cfc8bcccd0f8d5e2b8f6bbb0cce2";
+  const char *opt2Hex = unknownScene ? "c4e3bdf1ccecd3d0b5e3bfc9b0ae" : "bbbbb8f6c7e1cbc9b5c4bbb0cce2";
+  const char *opt3Hex = unknownScene ? "bbbbb8f6b3a1beb0cad4cad4" : "b5c8cdf8c2e7bbd6b8b4d4d9c1c4";
+
+  len = 0;
+  appendAsciiBytes(buf, len, "TEXT=");
+  appendHexBytes(buf, len, String(replyHex));
+  appendAsciiBytes(buf, len, "|OPT1=");
+  appendHexBytes(buf, len, String(opt1Hex));
+  appendAsciiBytes(buf, len, "|OPT2=");
+  appendHexBytes(buf, len, String(opt2Hex));
+  appendAsciiBytes(buf, len, "|OPT3=");
+  appendHexBytes(buf, len, String(opt3Hex));
+  appendAsciiBytes(buf, len, "|AVATAR=");
+  appendAsciiBytes(buf, len, unknownScene ? "curious" : "gentle");
+  appendAsciiBytes(buf, len, "\n");
+}
+
 static bool callStoryApi(const SceneProfile &scene, SceneState &state, uint8_t *serialBuf, size_t &serialLen, String &reply) {
   if (!ensureWiFi()) {
     return false;
@@ -290,6 +310,12 @@ static void handleFrame(const String &frame) {
   if (sceneIndex < 0) {
     Serial.print("[bridge] unknown scene=");
     Serial.println(sceneKey);
+    uint8_t unknownBuf[SERIAL_BUF_SIZE];
+    size_t unknownLen = 0;
+    buildFallbackPacket(unknownBuf, unknownLen, true);
+    Serial.println("[bridge] send serial=<gbk fallback packet>");
+    Serial2.write(unknownBuf, unknownLen);
+    return;
     Serial2.println("TEXT=我先陪你随便聊聊吧|OPT1=那你先开口呀|OPT2=你今天有点可爱|OPT3=换个场景试试|AVATAR=curious");
     return;
   }
@@ -308,6 +334,11 @@ static void handleFrame(const String &frame) {
   String reply;
   if (!callStoryApi(kScenes[sceneIndex], gSceneStates[sceneIndex], serialBuf, serialLen, reply)) {
     Serial.println("[bridge] fallback serial line");
+    buildFallbackPacket(serialBuf, serialLen, false);
+    reply = "";
+    Serial.println("[bridge] send serial=<gbk fallback packet>");
+    Serial2.write(serialBuf, serialLen);
+    return;
     serialLine = buildFallback(kScenes[sceneIndex].name);
     reply = "";
     Serial.print("[bridge] send serial=");
