@@ -8,11 +8,15 @@ typedef struct {
 } AvatarComposition;
 
 static const AvatarComposition g_avatar_map[] = {
-    {avatar_eye_eye_open, avatar_mouth_mouth_smile},      /* AVATAR_HAPPY */
-    {avatar_eye_eye_halfmoon, avatar_mouth_mouth_smallO}, /* AVATAR_SHY */
-    {avatar_eye_eye_halfclosed, avatar_mouth_mouth_smile},/* AVATAR_GENTLE */
-    {avatar_eye_eye_squint, avatar_mouth_mouth_flat},     /* AVATAR_THINKING */
-    {avatar_eye_eye_open, avatar_mouth_mouth_bigO}        /* AVATAR_CURIOUS */
+    {avatar_eye_eye_open, avatar_mouth_mouth_smile},           /* FACE_HAPPY */
+    {avatar_eye_eye_halfclosed, avatar_mouth_mouth_smile},     /* FACE_CONTENT */
+    {avatar_eye_eye_halfmoon, avatar_mouth_mouth_wave},        /* FACE_RELAXED */
+    {avatar_eye_eye_open, avatar_mouth_mouth_bigO},            /* FACE_SURPRISED */
+    {avatar_eye_eye_normal, avatar_mouth_mouth_flat},          /* FACE_NEUTRAL */
+    {avatar_eye_eye_halfclosed, avatar_mouth_mouth_flat},      /* FACE_BORED */
+    {avatar_eye_eye_angry, avatar_mouth_mouth_saw},            /* FACE_ANGRY */
+    {avatar_eye_eye_sad, avatar_mouth_mouth_reserve_arch},     /* FACE_SAD */
+    {avatar_eye_eye_sagging, avatar_mouth_mouth_flat}          /* FACE_DEPRESSED */
 };
 
 void AI_Avatar_Init(void)
@@ -35,15 +39,15 @@ static void BlitImage(uint16_t *dst_buffer, const uint16_t *src,
     }
 }
 
-void AI_Avatar_RenderToBuffer(AvatarState state, uint16_t *buffer)
+void AI_Avatar_RenderToBuffer(FaceID_t face, uint16_t *buffer)
 {
     const AvatarComposition *comp;
 
-    if (state >= sizeof(g_avatar_map) / sizeof(g_avatar_map[0])) {
-        state = AVATAR_HAPPY;
+    if (face >= sizeof(g_avatar_map) / sizeof(g_avatar_map[0])) {
+        face = FACE_NEUTRAL;
     }
 
-    comp = &g_avatar_map[state];
+    comp = &g_avatar_map[face];
 
     /* Copy body base */
     memcpy(buffer, avatar_body_body, sizeof(uint16_t) * AI_AVATAR_WIDTH * AI_AVATAR_HEIGHT);

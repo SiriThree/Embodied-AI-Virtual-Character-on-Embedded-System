@@ -8,7 +8,7 @@ typedef struct
     SceneInfo *scenes;
     uint8_t scene_index;
     ChatState *chat_state;
-    void (*ui_set_avatar)(AvatarState state);
+    void (*ui_set_avatar)(FaceID_t face);
     void (*ui_show_user_text)(const char *text);
     void (*ui_show_ai_text)(const char *text);
     void (*ui_show_chat_options)(void);

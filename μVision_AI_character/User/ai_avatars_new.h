@@ -2,14 +2,7 @@
 #define __AI_AVATARS_NEW_H
 
 #include <stdint.h>
-
-typedef enum {
-    AVATAR_HAPPY = 0,
-    AVATAR_SHY,
-    AVATAR_GENTLE,
-    AVATAR_THINKING,
-    AVATAR_CURIOUS
-} AvatarState;
+#include "emotion.h"
 
 #define AI_AVATAR_WIDTH  160
 #define AI_AVATAR_HEIGHT 120
@@ -23,6 +16,6 @@ typedef enum {
 #define MOUTH_Y     46
 
 void AI_Avatar_Init(void);
-void AI_Avatar_RenderToBuffer(AvatarState state, uint16_t *buffer);
+void AI_Avatar_RenderToBuffer(FaceID_t face, uint16_t *buffer);
 
 #endif /* __AI_AVATARS_NEW_H */

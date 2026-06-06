@@ -6,7 +6,6 @@
 
 static void Chat_BuildMockReply(AIChatContext *ctx, const char *user_choice);
 static uint8_t Chat_ParseReply(AIChatContext *ctx, char *buf);
-static AvatarState AvatarState_FromToken(const char *token);
 
 void AI_Chat_ResetForScene(AIChatContext *ctx)
 {
@@ -25,7 +24,7 @@ void AI_Chat_SelectSceneIntro(AIChatContext *ctx)
     char send_buf[MAX_PROTOCOL_BUF];
     char user_line[MAX_TEXT_LEN];
 
-    ctx->ui_set_avatar(ctx->scenes[ctx->scene_index].avatar);
+    ctx->ui_set_avatar(Emotion_GetFace());
     SafeStringCopy(user_line, TXT_YOU_PREFIX, MAX_TEXT_LEN);
     AppendString(user_line, ctx->scenes[ctx->scene_index].name, MAX_TEXT_LEN);
     ctx->chat_state->ai_text[0] = '\0';
@@ -71,7 +70,7 @@ void AI_Chat_SendSelectedOption(AIChatContext *ctx)
 
     ctx->chat_state->ai_text[0] = '\0';
     ctx->ui_show_user_text(user_line);
-    ctx->ui_set_avatar(AVATAR_THINKING);
+    ctx->ui_set_avatar(Emotion_GetFace());
     ctx->ui_show_ai_text(TXT_THINKING);
 
     SafeStringCopy(send_buf, "SCENE:", MAX_PROTOCOL_BUF);
@@ -95,7 +94,7 @@ void AI_Chat_SendSelectedOption(AIChatContext *ctx)
         Chat_BuildMockReply(ctx, user_choice);
     }
 
-    ctx->ui_set_avatar(ctx->scenes[ctx->scene_index].avatar);
+    ctx->ui_set_avatar(Emotion_GetFace());
     ctx->ui_show_ai_text(ctx->chat_state->ai_text);
     ctx->ui_show_chat_options();
 }
@@ -220,33 +219,6 @@ static uint8_t Chat_ParseReply(AIChatContext *ctx, char *buf)
         ctx->chat_state->option_count = 3;
     }
 
-    if (avatar != 0)
-    {
-        ctx->scenes[ctx->scene_index].avatar = AvatarState_FromToken(avatar);
-    }
-
     ctx->chat_state->selected_option = 0;
     return 1;
-}
-
-static AvatarState AvatarState_FromToken(const char *token)
-{
-    if (strcmp(token, "happy") == 0)
-    {
-        return AVATAR_HAPPY;
-    }
-    if (strcmp(token, "shy") == 0)
-    {
-        return AVATAR_SHY;
-    }
-    if (strcmp(token, "gentle") == 0)
-    {
-        return AVATAR_GENTLE;
-    }
-    if (strcmp(token, "thinking") == 0)
-    {
-        return AVATAR_THINKING;
-    }
-
-    return AVATAR_CURIOUS;
 }

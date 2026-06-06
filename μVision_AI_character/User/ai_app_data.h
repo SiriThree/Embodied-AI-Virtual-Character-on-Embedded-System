@@ -139,7 +139,6 @@ typedef struct
     const char *name;
     const char *intro;
     const char *topic_key;
-    AvatarState avatar;
 } SceneInfo;
 
 typedef struct
@@ -155,7 +154,6 @@ typedef struct
 typedef struct
 {
     const char *text;
-    AvatarState avatar;
 } IdleFeedback;
 
 extern SceneInfo g_scenes[MAX_SCENE_COUNT];

@@ -25,7 +25,7 @@ static void UI_Init(void);
 static void UI_DrawCurrentPage(void);
 static void UI_ShowSceneWindow(void);
 static void UI_ShowCoverHintText(const char *text);
-static void UI_SetAvatarState(AvatarState state);
+static void UI_SetAvatarState(FaceID_t face);
 static void UI_ShowUserText(const char *text);
 static void UI_ShowAIText(const char *text);
 static void UI_ShowChatOptions(void);
@@ -163,9 +163,9 @@ static void UI_ShowCoverHintText(const char *text)
     AI_UI_ShowCoverHint(text);
 }
 
-static void UI_SetAvatarState(AvatarState state)
+static void UI_SetAvatarState(FaceID_t face)
 {
-    AI_UI_SetAvatar(state);
+    AI_UI_SetAvatar(face);
 }
 
 static void UI_ShowUserText(const char *text)

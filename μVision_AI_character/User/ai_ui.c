@@ -29,9 +29,9 @@ static void AI_UI_DrawCard(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
 static void AI_UI_DrawSelectionCard(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
     uint8_t selected);
 static void AI_UI_DrawSoftBackground(void);
-static void AI_UI_DrawAvatarScaled(AvatarState state, uint16_t x, uint16_t y,
+static void AI_UI_DrawAvatarScaled(FaceID_t face, uint16_t x, uint16_t y,
     uint16_t w, uint16_t h, uint16_t bg_color);
-static const char *AI_UI_GetAvatarBadge(AvatarState state);
+static const char *AI_UI_GetAvatarBadge(FaceID_t face);
 static const char *AI_UI_GetSceneBadge(const SceneInfo *scene);
 static void AI_UI_BuildSceneCounter(char *buf, uint8_t current, uint8_t total);
 static uint16_t AI_UI_CenterX(const char *text);
@@ -86,7 +86,7 @@ static void AI_UI_DrawCover(void)
     LCD_SetTextColor(COLOR_FRAME_SOFT);
     ILI9341_DrawRectangle(cover_avatar_x, cover_avatar_y, cover_avatar_w, cover_avatar_h, 0);
 
-    AI_UI_DrawAvatarScaled(AVATAR_HAPPY, cover_avatar_x + 4, cover_avatar_y + 4,
+    AI_UI_DrawAvatarScaled(Emotion_GetFace(), cover_avatar_x + 4, cover_avatar_y + 4,
         cover_avatar_w - 8, cover_avatar_h - 8, COLOR_PANEL_DARK);
 
     LCD_SetColors(COLOR_TITLE, COLOR_BG);
@@ -142,7 +142,7 @@ static void AI_UI_DrawChat(const AIUIContext *ctx)
     AI_UI_DrawSoftBackground();
     AI_UI_ShowChatHeader(ctx);
     AI_UI_DrawFrame();
-    AI_UI_SetAvatar(ctx->scenes[ctx->scene_index].avatar);
+    AI_UI_SetAvatar(Emotion_GetFace());
     AI_UI_ShowDialogTexts(ctx->chat_state);
     AI_UI_ShowChatOptions(ctx->chat_state);
 }
@@ -230,7 +230,7 @@ void AI_UI_ShowChatHeader(const AIUIContext *ctx)
 {
     const char *badge;
 
-    badge = AI_UI_GetAvatarBadge(ctx->scenes[ctx->scene_index].avatar);
+    badge = AI_UI_GetAvatarBadge(Emotion_GetFace());
 
     LCD_SetColors(COLOR_PANEL, COLOR_BG);
     ILI9341_Clear(0, 0, LCD_X_LENGTH, 36);
@@ -244,9 +244,9 @@ void AI_UI_ShowChatHeader(const AIUIContext *ctx)
     ILI9341_DispString_EN_CH(166, 16, (char *)badge);
 }
 
-void AI_UI_SetAvatar(AvatarState state)
+void AI_UI_SetAvatar(FaceID_t face)
 {
-    AI_UI_DrawAvatarScaled(state, CHAT_AVATAR_X, CHAT_AVATAR_Y, CHAT_AVATAR_W, CHAT_AVATAR_H,
+    AI_UI_DrawAvatarScaled(face, CHAT_AVATAR_X, CHAT_AVATAR_Y, CHAT_AVATAR_W, CHAT_AVATAR_H,
         COLOR_PANEL_DARK);
 }
 
@@ -386,7 +386,7 @@ static void AI_UI_DrawSoftBackground(void)
     ILI9341_DrawLine(184, 300, 232, 300);
 }
 
-static void AI_UI_DrawAvatarScaled(AvatarState state, uint16_t x, uint16_t y,
+static void AI_UI_DrawAvatarScaled(FaceID_t face, uint16_t x, uint16_t y,
     uint16_t w, uint16_t h, uint16_t bg_color)
 {
     static uint16_t avatar_buffer[AI_AVATAR_WIDTH * AI_AVATAR_HEIGHT];
@@ -395,7 +395,7 @@ static void AI_UI_DrawAvatarScaled(AvatarState state, uint16_t x, uint16_t y,
     uint16_t src_x;
     uint16_t src_y;
 
-    AI_Avatar_RenderToBuffer(state, avatar_buffer);
+    AI_Avatar_RenderToBuffer(face, avatar_buffer);
 
     LCD_SetColors(COLOR_PANEL, bg_color);
     ILI9341_Clear(x, y, w, h);
@@ -415,25 +415,28 @@ static void AI_UI_DrawAvatarScaled(AvatarState state, uint16_t x, uint16_t y,
     }
 }
 
-static const char *AI_UI_GetAvatarBadge(AvatarState state)
+static const char *AI_UI_GetAvatarBadge(FaceID_t face)
 {
-    switch (state)
+    switch (face)
     {
-        case AVATAR_HAPPY:
+        case FACE_HAPPY:
             return "HAPPY";
-
-        case AVATAR_SHY:
-            return "SHY";
-
-        case AVATAR_GENTLE:
-            return "GENTLE";
-
-        case AVATAR_CURIOUS:
-            return "CURIOUS";
-
-        case AVATAR_THINKING:
-            return "THINK";
-
+        case FACE_CONTENT:
+            return "CONTENT";
+        case FACE_RELAXED:
+            return "RELAXED";
+        case FACE_SURPRISED:
+            return "SURPRISE";
+        case FACE_NEUTRAL:
+            return "NEUTRAL";
+        case FACE_BORED:
+            return "BORED";
+        case FACE_ANGRY:
+            return "ANGRY";
+        case FACE_SAD:
+            return "SAD";
+        case FACE_DEPRESSED:
+            return "DEPRESS";
         default:
             return "MOOD";
     }
