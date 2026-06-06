@@ -1,171 +1,195 @@
-# STM32 AI Virtual Character
+# STM32 嵌入式 AI 虚拟角色系统
 
-Embedded AI virtual character project based on the `STM32F103VET6` Wildfire development board.
+这是一个基于 `STM32F103VET6` 野火开发板的嵌入式 AI 虚拟角色项目。  
+项目目标是在小尺寸触摸屏上实现一个具有“角色感、互动感、陪伴感”的 AI 伙伴系统。
 
-This repository contains three parts:
+当前仓库包含三部分：
 
-- `STM32`: cover page, scene selection page, chat page, key/touch interaction, avatar and text rendering
-- `ESP32`: serial bridge between `STM32 -> ESP32 -> FastAPI`
-- `FastAPI + LLM`: dynamic reply, option generation, avatar mood selection
+- `STM32` 端：封面页、场景选择页、对话页、按键/触摸交互、头像与文本显示
+- `ESP32` 端：负责串口桥接，把 STM32 请求转发给后端
+- `FastAPI + LLM` 后端：负责动态生成 AI 回复、用户选项和情绪状态
 
-The current repository is organized so it can be opened and compiled directly in `Keil uVision`.
+当前版本已经整理成可直接在 `Keil μVision` 中编译的模块化工程。
 
-## Project Structure
+---
 
-- `μVision_AI_character/`
-  STM32 firmware project
-- `μVision_AI_character/User/main.c`
-  Minimal entry file, only `main()` and hardware startup
-- `μVision_AI_character/User/ai_app.c`
-  Page state machine, input dispatch, idle logic
-- `μVision_AI_character/User/ai_ui.c`
-  UI drawing, avatar rendering, text and option display
-- `μVision_AI_character/User/ai_chat.c`
-  Serial protocol, reply parsing, local mock fallback
-- `μVision_AI_character/User/ai_app_data.c`
-  Scene table, UI text, layout constants
-- `μVision_AI_character/User/ai_app_utils.c`
-  Text wrapping, ellipsis trimming, string helpers, UART helpers
-- `esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino`
-  ESP32 serial bridge
-- `main.py`
-  FastAPI backend entry
-- `docs/v3_modules_requirements.md`
-  Requirement notes for planned modules
+## 一、项目目录结构
 
-## STM32 Build
+```text
+STM32_AI_Character/
+├─ μVision_AI_character/                  # STM32 固件工程
+│  ├─ Project/RVMDK（uv5）/BH-F103.uvprojx
+│  └─ User/
+│     ├─ main.c                           # 最小入口，仅保留启动与初始化
+│     ├─ ai_app.c / ai_app.h              # 页面状态机、输入分发、待机逻辑
+│     ├─ ai_ui.c / ai_ui.h                # 三个页面的 UI 绘制
+│     ├─ ai_chat.c / ai_chat.h            # 串口协议、回包解析、mock 逻辑
+│     ├─ ai_app_data.c / ai_app_data.h    # 场景数据、文案、布局常量
+│     └─ ai_app_utils.c / ai_app_utils.h  # 文本裁切、换行、串口辅助函数
+├─ esp32_bridge/
+│  └─ STM32_AI_Bridge/
+│     └─ STM32_AI_Bridge.ino              # ESP32 串口桥接程序
+├─ docs/
+│  └─ v3_modules_requirements.md          # 后续模块需求文档
+├─ main.py                                # FastAPI 后端入口
+├─ ai_partner_memory.db                   # 本地记忆数据库
+└─ README.md
+```
 
-### Environment
+---
 
-- `Keil MDK-ARM / uVision5`
+## 二、STM32 工程编译说明
+
+### 1. 开发环境
+
+- `Keil MDK-ARM / μVision5`
 - `ARM Compiler 5`
 
-Verified compiler version:
+当前验证通过的编译器版本：
 
 - `V5.06 update 6 (build 750)`
 
-### Open the Project
+### 2. 工程位置
 
-Open this file in `uVision`:
+请在 `μVision` 中打开：
 
-`μVision_AI_character/Project/RVMDK（uv5）/BH-F103.uvprojx`
+```text
+μVision_AI_character/Project/RVMDK（uv5）/BH-F103.uvprojx
+```
 
-Target information:
+工程关键信息：
 
-- Target: `LDC`
-- Device: `STM32F103VE`
-- Output: `Template`
+- Target：`LDC`
+- Device：`STM32F103VE`
+- Output：`Template`
 
-### Build Steps
+### 3. 编译步骤
 
-1. Open `BH-F103.uvprojx`
-2. Confirm the active target is `LDC`
-3. Click `Rebuild`
+1. 打开 `BH-F103.uvprojx`
+2. 确认当前 Target 为 `LDC`
+3. 点击 `Rebuild`
 
-The project file already includes the split modules in the `USER` group. No manual project-file editing is required.
+当前工程文件已经包含拆分后的新模块，不需要手动再往工程里加文件。
 
-## STM32 Runtime Flow
+---
 
-After reset, the firmware enters:
+## 三、STM32 端当前功能
 
-1. Cover page
-2. Scene selection page
-3. Multi-round chat page
+### 1. 页面流程
 
-If ESP32 or backend is not connected, the firmware falls back to local mock replies so the UI demo still works.
+系统当前流程为：
 
-## STM32 Module Notes
+1. 封面页
+2. 场景/话题选择页
+3. 多轮对话页
+
+### 2. 交互方式
+
+- `K1 短按`：切换场景或切换选项
+- `K1 长按`：反向切换
+- `K2 短按`：确认当前选择
+- `K2 长按`：返回上一页
+- 触摸点击：选择场景或选择选项
+- 触摸滑动：场景翻动或页面切换
+
+### 3. 当前内置场景
+
+当前已内置多个场景，例如：
+
+- 逛街约会
+- 一起开黑
+- 咖啡馆
+- 图书馆
+- 晚安夜聊
+- 鼓励模式
+- 散步吹风
+- 一起吃饭
+- 电影时间
+- 音乐分享
+- 考试前夕
+- 休息陪伴
+
+### 4. 本地兜底逻辑
+
+如果 STM32 没有接上 ESP32，或者后端没有连通，系统仍然可以使用本地 mock 回复进行演示，不会卡死。
+
+---
+
+## 四、STM32 模块职责说明
 
 ### `main.c`
 
-Only keeps:
+只保留两类职责：
 
 - `main()`
-- `System_Init_All()`
+- 硬件初始化入口
 
 ### `ai_app.c`
 
-Responsible for:
+负责：
 
-- page state machine
-- `K1 / K2` input logic
-- touch and gesture dispatch
-- scene and option switching
-- idle feedback logic
+- 页面状态机
+- 按键与触摸输入分发
+- 场景切换
+- 对话选项切换
+- 待机反馈逻辑
 
 ### `ai_ui.c`
 
-Responsible for:
+负责：
 
-- cover page drawing
-- scene page drawing
-- chat page drawing
-- avatar scaling and drawing
-- dialog and option rendering
+- 封面页绘制
+- 场景页绘制
+- 对话页绘制
+- 头像缩放显示
+- 对话文本与选项显示
 
 ### `ai_chat.c`
 
-Responsible for:
+负责：
 
-- first-round scene request
-- option sending
-- serial reply parsing
-- mock reply building
-- avatar token parsing
+- 进入场景后的首轮请求
+- 选项发送
+- 串口回包解析
+- 本地 mock 回复
+- avatar 状态解析
 
 ### `ai_app_data.c`
 
-Responsible for:
+负责：
 
-- scene metadata
-- UI copy
-- idle feedback strings
-- layout constants
+- 场景表
+- UI 中文文案
+- 待机提示文案
+- 布局与颜色常量
 
 ### `ai_app_utils.c`
 
-Responsible for:
+负责：
 
-- pixel-width-based text wrapping
-- ellipsis trimming
-- string helpers
-- UART helpers
+- 文本按像素宽度裁切
+- 自动换行
+- 省略号处理
+- 字符串拼接
+- 串口收发辅助
 
-## Interaction
+---
 
-- `K1 short`: next option or next scene
-- `K1 long`: previous option or previous scene
-- `K2 short`: confirm selection
-- `K2 long`: go back
-- touch tap: select scene or option
-- touch swipe: scene or page navigation
+## 五、ESP32 串口桥接说明
 
-## Example Scenes
+桥接文件：
 
-Built-in scenes include:
+```text
+esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino
+```
 
-- Shopping date
-- Gaming
-- Cafe
-- Library
-- Night chat
-- Encourage mode
-- Walk
-- Dinner
-- Movie
-- Music
-- Exam
-- Rest
+### 1. 作用
 
-## ESP32 Bridge
+ESP32 负责接收 STM32 发来的串口请求，访问 FastAPI 后端，再把结果通过串口发回 STM32。
 
-Bridge file:
+### 2. 串口协议
 
-`esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino`
-
-### Protocol
-
-STM32 -> ESP32:
+STM32 -> ESP32：
 
 ```text
 SCENE:shopping
@@ -173,187 +197,211 @@ SCENE:shopping|IDX:0
 SCENE:gaming|IDX:2
 ```
 
-ESP32 -> STM32:
+ESP32 -> STM32：
 
 ```text
 TEXT=...|OPT1=...|OPT2=...|OPT3=...|AVATAR=happy
 ```
 
-### Required ESP32 Config
+### 3. 烧录前需要确认的配置
 
-Check these values before flashing:
+请检查 `.ino` 中以下内容：
 
 - `WIFI_SSID`
 - `WIFI_PASS`
 - `API_BASE_URL`
 - `API_PATH`
 
-### Recommended Wiring
+### 4. 推荐接线
 
-Current STM32 firmware uses `USART2`:
+当前 STM32 工程使用 `USART2`：
 
 - `STM32 PA2 = TX`
 - `STM32 PA3 = RX`
 
-ESP32 bridge default:
+ESP32 桥接默认使用：
 
 - `GPIO16 = RX`
 - `GPIO17 = TX`
 
-Wire as:
+连接方式：
 
 - `ESP32 GPIO17 (TX) -> STM32 PA3 (RX)`
 - `ESP32 GPIO16 (RX) -> STM32 PA2 (TX)`
 - `GND -> GND`
 
-### ESP32 Serial Monitor
+### 5. 串口监视器
 
-Baud rate:
+波特率：
 
 ```text
 115200
 ```
 
-Expected boot log:
+正常启动后应看到类似日志：
 
 ```text
 [bridge] boot
 [bridge] uart2 baud=115200
-[bridge] api=http://your-pc-ip:8000/scene_story_serial
+[bridge] api=http://你的电脑IP:8000/scene_story_serial
 [bridge] connecting wifi...
 [bridge] wifi ok, ip=...
 ```
 
-## FastAPI Backend
+---
 
-Backend entry:
+## 六、FastAPI 后端说明
 
-`main.py`
+后端入口文件：
 
-### Python Environment
+```text
+main.py
+```
 
-Recommended:
+### 1. Python 环境
+
+推荐：
 
 - `Python 3.10+`
 
-### Dependencies
+### 2. 安装依赖
 
-If `requirements.txt` is not yet present, install manually:
+仓库现在已经补充了 `requirements.txt`，可直接执行：
 
 ```bash
-pip install fastapi uvicorn python-dotenv openai pydantic
+pip install -r requirements.txt
 ```
 
-### Environment Variables
+### 3. 环境变量
 
-Copy:
+先复制：
 
 ```text
 .env.example -> .env
 ```
 
-Then set:
+然后在 `.env` 中填写：
 
 ```text
-DEEPSEEK_API_KEY=your_key
+DEEPSEEK_API_KEY=你的密钥
 ```
 
-### Start Backend
+### 4. 启动方式
 
-Run in repository root:
+在仓库根目录运行：
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Then open:
+启动后可访问：
 
-`http://127.0.0.1:8000/docs`
+```text
+http://127.0.0.1:8000/docs
+```
 
-### Main API
+### 5. 当前主要接口
 
 - `POST /scene_serial`
 - `POST /scene_story_serial`
+- `POST /chat`
 
-Recommended real integration endpoint:
+实际联调推荐使用：
 
 - `POST /scene_story_serial`
 
-## Quick Test Paths
+---
 
-### A. STM32 Only
+## 七、最短上手流程
 
-1. Open project in `uVision`
-2. Build and flash STM32
-3. Verify cover, scene, and chat pages
+### 方案 A：只验证 STM32 UI
 
-### B. STM32 + ESP32
+1. 用 `μVision` 打开工程
+2. 编译并烧录 STM32
+3. 检查封面页、场景页、对话页是否正常显示
 
-1. Build and flash STM32
-2. Configure `STM32_AI_Bridge.ino`
-3. Flash ESP32
-4. Connect serial wires
-5. Watch ESP32 serial log
+### 方案 B：STM32 + ESP32
 
-### C. Full Chain
+1. 编译并烧录 STM32
+2. 配置并烧录 ESP32 `.ino`
+3. 接好串口线
+4. 观察 ESP32 串口监视器日志
 
-1. Start FastAPI
-2. Flash ESP32
-3. Flash STM32
-4. Enter a scene
-5. Verify dynamic reply and options
+### 方案 C：完整联调
 
-## Common Issues
+1. 启动 FastAPI
+2. 烧录 ESP32
+3. 烧录 STM32
+4. 进入任意场景
+5. 检查动态回复、动态选项和头像状态是否正常
 
-### uVision builds but flashing fails
+---
 
-Check:
+## 八、常见问题
 
-- debugger connection
-- `ST-Link`
+### 1. μVision 能编译，但烧录后没反应
+
+优先检查：
+
+- `ST-Link` 连接
+- 板子供电
 - `Connect under Reset`
-- board power
+- 下载算法是否正确
 
-### ESP32 shows `http failed, status=-1`
+### 2. ESP32 串口监视器出现 `http failed, status=-1`
 
-Usually backend address or local network issue. Check:
+通常是后端地址或局域网问题，请检查：
 
 - `API_BASE_URL`
-- actual PC LAN IP
-- backend started with `0.0.0.0`
-- firewall allows port `8000`
+- 电脑当前局域网 IP
+- `uvicorn` 是否使用 `0.0.0.0`
+- Windows 防火墙是否放行 `8000`
 
-### STM32 screen and ESP32 log do not match
+### 3. STM32 屏幕内容与 ESP32 日志不一致
 
-Check:
+优先检查：
 
-- crossed TX/RX wiring
-- current firmware is the `USART2` version
-- STM32 is flashed with the latest build
+- TX/RX 是否交叉连接
+- 是否使用当前仓库里的 `USART2` 版本固件
+- STM32 是否真的烧录到最新固件
 
-### Chinese text becomes garbled
+### 4. 中文出现乱码
 
-This firmware path depends on GBK-compatible rendering on STM32. Check:
+当前 STM32 侧依赖 `GBK` 路径显示中文。若出现乱码，请检查：
 
-- STM32 is updated to latest build
-- ESP32 bridge matches current repository version
-- serial reply is sent as the expected packet format
+- STM32 是否烧录了最新固件
+- ESP32 bridge 是否与当前仓库版本一致
+- 串口回包是否仍符合当前协议
 
-## Current Status
+---
 
-This repository is currently a demo-ready prototype, not a final packaged release.
+## 九、当前项目状态
 
-Already implemented:
+当前仓库更偏向“可演示原型”，而不是最终产品封装版。
 
-- STM32 modular UI and interaction flow
-- ESP32 serial bridge
-- FastAPI + LLM dynamic dialogue
-- scene-based multi-round replies
+已经具备：
 
-Planned expansion:
+- STM32 模块化 UI 与交互逻辑
+- ESP32 串口桥接
+- FastAPI + LLM 动态对话
+- 场景化多轮选项交互
 
-- voice module
-- affection and mood memory
-- vision sensing module
-- story branch module
+后续可继续扩展：
+
+- 声音模块
+- 好感度与情绪记忆模块
+- 视觉感知模块
+- 剧情分支模块
+
+---
+
+## 十、建议提交前自检
+
+如果你准备把仓库交给其他人使用，建议先确认：
+
+1. `BH-F103.uvprojx` 能在本机 `μVision` 正常打开
+2. `LDC` Target 能直接编译通过
+3. `.env.example` 内容完整
+4. `STM32_AI_Bridge.ino` 中的 Wi-Fi 和 IP 配置清晰
+5. README 中的路径与仓库结构一致
 
