@@ -2,7 +2,7 @@
 #define __AI_APP_DATA_H
 
 #include "stm32f10x.h"
-#include "ai_avatars.h"
+#include "ai_avatars_new.h"
 
 #define AVATAR_X                 30
 #define AVATAR_Y                 28
@@ -130,7 +130,8 @@ typedef enum
 {
     PAGE_COVER = 0,
     PAGE_SCENE_SELECT,
-    PAGE_CHAT
+    PAGE_CHAT,
+    PAGE_EMOTION
 } AppPage;
 
 typedef struct

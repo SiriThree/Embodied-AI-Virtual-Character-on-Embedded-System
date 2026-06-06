@@ -8,6 +8,7 @@
 #include "key_input.h"
 #include "ai_app_utils.h"
 #include "ai_app.h"
+#include "emotion.h"
 
 static void System_Init_All(void);
 
@@ -32,6 +33,7 @@ static void System_Init_All(void)
 
     Gesture_Init();
     KeyInput_Init();
+    Emotion_Init();
 
     AI_App_Init();
 

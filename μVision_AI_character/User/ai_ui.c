@@ -1,11 +1,13 @@
 /* UI layer: all screen drawing, avatar rendering and text/option presentation. */
 #include "stm32f10x.h"
+#include <stdio.h>
 
 #include "./lcd/bsp_ili9341_lcd.h"
 
-#include "ai_avatars.h"
+#include "ai_avatars_new.h"
 #include "ai_app_utils.h"
 #include "ai_ui.h"
+#include "emotion.h"
 
 #define LCD_CMD   (*((volatile uint16_t *)FSMC_Addr_ILI9341_CMD))
 #define LCD_DATA  (*((volatile uint16_t *)FSMC_Addr_ILI9341_DATA))
@@ -18,6 +20,7 @@
 static void AI_UI_DrawCover(void);
 static void AI_UI_DrawSceneSelect(const AIUIContext *ctx);
 static void AI_UI_DrawChat(const AIUIContext *ctx);
+static void AI_UI_DrawEmotion(void);
 static void AI_UI_DrawFrame(void);
 static void AI_UI_ClearDialogArea(void);
 static void AI_UI_ShowDialogTexts(const ChatState *chat_state);
@@ -52,6 +55,10 @@ void AI_UI_DrawCurrentPage(const AIUIContext *ctx)
 
         case PAGE_CHAT:
             AI_UI_DrawChat(ctx);
+            break;
+
+        case PAGE_EMOTION:
+            AI_UI_DrawEmotion();
             break;
 
         default:
@@ -382,13 +389,13 @@ static void AI_UI_DrawSoftBackground(void)
 static void AI_UI_DrawAvatarScaled(AvatarState state, uint16_t x, uint16_t y,
     uint16_t w, uint16_t h, uint16_t bg_color)
 {
-    const uint16_t *img;
+    static uint16_t avatar_buffer[AI_AVATAR_WIDTH * AI_AVATAR_HEIGHT];
     uint16_t dst_x;
     uint16_t dst_y;
     uint16_t src_x;
     uint16_t src_y;
 
-    img = AI_Avatar_GetImage(state);
+    AI_Avatar_RenderToBuffer(state, avatar_buffer);
 
     LCD_SetColors(COLOR_PANEL, bg_color);
     ILI9341_Clear(x, y, w, h);
@@ -403,7 +410,7 @@ static void AI_UI_DrawAvatarScaled(AvatarState state, uint16_t x, uint16_t y,
         for (dst_x = 0; dst_x < w; dst_x++)
         {
             src_x = (uint16_t)((uint32_t)dst_x * AI_AVATAR_WIDTH / w);
-            LCD_DATA = img[src_y * AI_AVATAR_WIDTH + src_x];
+            LCD_DATA = avatar_buffer[src_y * AI_AVATAR_WIDTH + src_x];
         }
     }
 }
@@ -499,4 +506,41 @@ static uint16_t AI_UI_CenterX(const char *text)
     }
 
     return (uint16_t)((LCD_X_LENGTH - width) / 2);
+}
+
+static void AI_UI_DrawEmotion(void)
+{
+    char buf[32];
+    float p, a;
+    FaceID_t face;
+    const char *face_names[] = {"Happy", "Content", "Relaxed", "Surprised",
+                                "Neutral", "Bored", "Angry", "Sad", "Depressed"};
+
+    Emotion_GetState(&p, &a);
+    face = Emotion_GetFace();
+
+    LCD_SetColors(COLOR_PANEL, COLOR_BG);
+    ILI9341_Clear(0, 0, LCD_X_LENGTH, LCD_Y_LENGTH);
+    AI_UI_DrawSoftBackground();
+
+    LCD_SetColors(COLOR_TITLE, COLOR_BG);
+    ILI9341_DispString_EN_CH(AI_UI_CenterX("Emotion State"), 20, "Emotion State");
+
+    AI_UI_DrawCard(20, 60, 200, 140, COLOR_PANEL_DARK, COLOR_FRAME);
+
+    LCD_SetColors(COLOR_AI_TEXT, COLOR_PANEL_DARK);
+    ILI9341_DispString_EN_CH(30, 70, "Pleasure:");
+    sprintf(buf, "%.2f", p);
+    ILI9341_DispString_EN_CH(130, 70, buf);
+
+    ILI9341_DispString_EN_CH(30, 100, "Arousal:");
+    sprintf(buf, "%.2f", a);
+    ILI9341_DispString_EN_CH(130, 100, buf);
+
+    ILI9341_DispString_EN_CH(30, 130, "Face:");
+    sprintf(buf, "%s", face_names[face]);
+    ILI9341_DispString_EN_CH(100, 130, buf);
+
+    LCD_SetColors(COLOR_HINT, COLOR_BG);
+    ILI9341_DispString_EN_CH(AI_UI_CenterX("K2Long/SwipeUp: Back"), 260, "K2Long/SwipeUp: Back");
 }
