@@ -4,6 +4,7 @@
 - DeepSeek 云端对话
 - JSON 解析 reply
 - 后端连续记忆与情绪状态
+- ESP32 GET云端mp3文件，MAX98357A播放
 
 运行方式：
 1. 手机开 2.4GHz 热点

@@ -6,8 +6,8 @@
 当前仓库包含三部分：
 
 - `STM32` 端：封面页、场景选择页、对话页、按键/触摸交互、头像与文本显示
-- `ESP32` 端：负责串口桥接，把 STM32 请求转发给后端
-- `FastAPI + LLM` 后端：负责动态生成 AI 回复、用户选项和情绪状态
+- `ESP32` 端：负责串口桥接，把 STM32 请求转发给后端；连接扬声器播放交互语音
+- `FastAPI + LLM + TTS` 后端：负责动态生成 AI 回复、用户选项和情绪状态、ai语音mp3回复
 
 当前版本已经整理成可直接在 `Keil μVision` 中编译的模块化工程。
 
@@ -33,6 +33,8 @@ STM32_AI_Character/
 │  └─ v3_modules_requirements.md          # 后续模块需求文档
 ├─ main.py                                # FastAPI 后端入口
 ├─ ai_partner_memory.db                   # 本地记忆数据库
+|─ text_to_speech.py                      # Text to Speech
+|-audio/                                  # 挂载mp3静态文件
 └─ README.md
 ```
 
@@ -230,6 +232,8 @@ ESP32 桥接默认使用：
 - `ESP32 GPIO16 (RX) -> STM32 PA2 (TX)`
 - `GND -> GND`
 
+
+
 ### 5. 串口监视器
 
 波特率：
@@ -248,6 +252,18 @@ ESP32 桥接默认使用：
 [bridge] wifi ok, ip=...
 ```
 
+### 6. 语音模块
+
+语音模块接线：
+- 'LRC-->25' 
+- 'BCLK-->26'
+- 'DIN-->22'
+- 'GND-->GND'
+- 'VIN-->3V3'
+
+注意事项：
+- 安装ESP32-audioI2S-master(3.0.13版本及以前)
+- tool选项卡partition scheme选择"HUGE APP"以获得充足内存
 ---
 
 ## 六、FastAPI 后端说明
@@ -385,10 +401,10 @@ http://127.0.0.1:8000/docs
 - ESP32 串口桥接
 - FastAPI + LLM 动态对话
 - 场景化多轮选项交互
+- ESP32 GET云端mp3文件 + MAX98357A播放
 
 后续可继续扩展：
 
-- 声音模块
 - 好感度与情绪记忆模块
 - 视觉感知模块
 - 剧情分支模块
