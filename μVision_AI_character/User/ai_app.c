@@ -8,12 +8,17 @@
 #include "ai_ui.h"
 #include "ai_chat.h"
 #include "ai_app.h"
+#include "emotion.h"
 
 static AppPage g_page = PAGE_COVER;
+static AppPage g_prev_page = PAGE_COVER;
 static uint8_t g_scene_index = 0;
 static uint8_t g_scene_scroll = 0;
 static uint8_t g_idle_feedback_index = 0;
 static uint32_t g_idle_count = 0;
+static uint32_t g_emotion_update_count = 0;
+static uint32_t g_emotion_page_refresh_count = 0;
+static FaceID_t g_last_face = FACE_NEUTRAL;
 static ChatState g_chat_state;
 
 static AIUIContext AI_UI_BuildContext(void);
@@ -22,7 +27,7 @@ static void UI_Init(void);
 static void UI_DrawCurrentPage(void);
 static void UI_ShowSceneWindow(void);
 static void UI_ShowCoverHintText(const char *text);
-static void UI_SetAvatarState(AvatarState state);
+static void UI_SetAvatarState(FaceID_t face);
 static void UI_ShowUserText(const char *text);
 static void UI_ShowAIText(const char *text);
 static void UI_ShowChatOptions(void);
@@ -72,6 +77,17 @@ void AI_App_Run(void)
         {
             has_input = 1;
             AI_Idle_Reset();
+
+            /* Trigger emotion events based on gesture */
+            if (gesture == GESTURE_TAP) {
+                Emotion_Event(EVENT_TOUCH_TAP, 1.0f);
+            } else if (gesture == GESTURE_LONG_PRESS) {
+                Emotion_Event(EVENT_TOUCH_LONG, 1.0f);
+            } else if (gesture == GESTURE_SWIPE_LEFT || gesture == GESTURE_SWIPE_RIGHT) {
+                Emotion_Event(EVENT_TOUCH_SWIPE_H, 1.0f);
+            } else if (gesture == GESTURE_SWIPE_UP || gesture == GESTURE_SWIPE_DOWN) {
+                Emotion_Event(EVENT_TOUCH_SWIPE_V, 1.0f);
+            }
         }
 
         AI_HandleKeyEvent(key);
@@ -80,6 +96,42 @@ void AI_App_Run(void)
         if (!has_input)
         {
             AI_Idle_Update();
+        }
+
+        /* Periodic emotion update (~100ms) */
+        g_emotion_update_count++;
+        if (g_emotion_update_count >= 10000)
+        {
+            FaceID_t current_face;
+
+            g_emotion_update_count = 0;
+            Emotion_Update();
+
+            current_face = Emotion_GetFace();
+            if (current_face != g_last_face)
+            {
+                g_last_face = current_face;
+
+                if (g_page == PAGE_COVER || g_page == PAGE_CHAT || g_page == PAGE_EMOTION)
+                {
+                    UI_DrawCurrentPage();
+                }
+            }
+        }
+
+        /* Emotion page periodic refresh (3s) */
+        if (g_page == PAGE_EMOTION)
+        {
+            g_emotion_page_refresh_count++;
+            if (g_emotion_page_refresh_count >= 300000)
+            {
+                g_emotion_page_refresh_count = 0;
+                UI_DrawCurrentPage();
+            }
+        }
+        else
+        {
+            g_emotion_page_refresh_count = 0;
         }
     }
 }
@@ -141,9 +193,9 @@ static void UI_ShowCoverHintText(const char *text)
     AI_UI_ShowCoverHint(text);
 }
 
-static void UI_SetAvatarState(AvatarState state)
+static void UI_SetAvatarState(FaceID_t face)
 {
-    AI_UI_SetAvatar(state);
+    AI_UI_SetAvatar(face);
 }
 
 static void UI_ShowUserText(const char *text)
@@ -184,6 +236,21 @@ static void Chat_SendSelectedOption(void)
 
 static void AI_HandleKeyEvent(KeyEvent key)
 {
+    /* K1 long press: toggle emotion page from any page */
+    if (key == KEY_EVENT_K1_LONG)
+    {
+        if (g_page == PAGE_EMOTION)
+        {
+            App_SwitchPage(g_prev_page);
+        }
+        else
+        {
+            g_prev_page = g_page;
+            App_SwitchPage(PAGE_EMOTION);
+        }
+        return;
+    }
+
     switch (g_page)
     {
         case PAGE_COVER:
@@ -198,9 +265,6 @@ static void AI_HandleKeyEvent(KeyEvent key)
             {
                 case KEY_EVENT_K1_SHORT:
                     App_SelectNextScene();
-                    break;
-                case KEY_EVENT_K1_LONG:
-                    App_SelectPrevScene();
                     break;
                 case KEY_EVENT_K2_SHORT:
                     App_StartSelectedScene();
@@ -219,9 +283,6 @@ static void AI_HandleKeyEvent(KeyEvent key)
                 case KEY_EVENT_K1_SHORT:
                     App_SelectNextOption();
                     break;
-                case KEY_EVENT_K1_LONG:
-                    App_SelectPrevOption();
-                    break;
                 case KEY_EVENT_K2_SHORT:
                     App_ConfirmCurrentSelection();
                     break;
@@ -230,6 +291,13 @@ static void AI_HandleKeyEvent(KeyEvent key)
                     break;
                 default:
                     break;
+            }
+            break;
+
+        case PAGE_EMOTION:
+            if (key == KEY_EVENT_K2_LONG)
+            {
+                App_SwitchPage(g_prev_page);
             }
             break;
 
@@ -256,6 +324,10 @@ static void AI_HandleGestureEvent(GestureType gesture)
             else if (gesture == GESTURE_SWIPE_UP || gesture == GESTURE_SWIPE_LEFT)
             {
                 App_SwitchPage(PAGE_SCENE_SELECT);
+            }
+            else if (gesture == GESTURE_SWIPE_DOWN)
+            {
+                App_SwitchPage(PAGE_EMOTION);
             }
             break;
 
@@ -302,6 +374,13 @@ static void AI_HandleGestureEvent(GestureType gesture)
             else if (gesture == GESTURE_LONG_PRESS)
             {
                 App_SwitchPage(PAGE_SCENE_SELECT);
+            }
+            break;
+
+        case PAGE_EMOTION:
+            if (gesture == GESTURE_SWIPE_UP || gesture == GESTURE_LONG_PRESS)
+            {
+                App_SwitchPage(PAGE_COVER);
             }
             break;
 

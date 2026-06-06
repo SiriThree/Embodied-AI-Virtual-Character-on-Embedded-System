@@ -567,6 +567,21 @@
               <FilePath>..\..\User\ai_app.c</FilePath>
             </File>
             <File>
+              <FileName>emotion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\emotion.c</FilePath>
+            </File>
+            <File>
+              <FileName>ai_avatar_data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\ai_avatar_data.c</FilePath>
+            </File>
+            <File>
+              <FileName>ai_avatars_new.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\ai_avatars_new.c</FilePath>
+            </File>
+            <File>
               <FileName>stm32f10x_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\stm32f10x_it.c</FilePath>
@@ -605,11 +620,6 @@
               <FileName>key_input.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Libraries\FWlib\src\key_input.c</FilePath>
-            </File>
-            <File>
-              <FileName>ai_avatars.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\Libraries\FWlib\src\ai_avatars.c</FilePath>
             </File>
           </Files>
         </Group>
