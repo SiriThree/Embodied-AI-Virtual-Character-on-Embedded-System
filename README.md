@@ -1,708 +1,423 @@
-# AI 虚拟角色系统
+# STM32 嵌入式 AI 虚拟角色系统
 
-一个运行在 STM32 平台上的嵌入式 AI 虚拟角色系统，配备触摸屏交互界面。
-该项目融合了 情绪建模、手势交互、实时动画以及基于云端大语言模型的智能对话，旨在打造一个具有生命感和互动能力的 AI 伙伴。
+这是一个基于 `STM32F103VET6` 野火开发板的嵌入式 AI 虚拟角色项目。  
+项目目标是在小尺寸触摸屏上实现一个具有“角色感、互动感、陪伴感”的 AI 伙伴系统。
 
-## ✨ 项目特点
+当前仓库包含三部分：
 
-- **AI 虚拟角色**
-  - 动态动画驱动的虚拟角色
-  - 情绪驱动的交互与响应
+- `STM32` 端：封面页、场景选择页、对话页、按键/触摸交互、头像与文本显示
+- `ESP32` 端：负责串口桥接，把 STM32 请求转发给后端；连接扬声器播放交互语音
+- `FastAPI + LLM + TTS` 后端：负责动态生成 AI 回复、用户选项和情绪状态、ai语音mp3回复
 
-- **情绪建模系统**
-  - 多维情绪状态
-  - 情绪随时间和交互过程动态演变
-  - 情绪影响行为表现与动画效果
-
-- **手势交互（TinyML）**
-  - 触摸轨迹识别
-  - 支持基于手势的交互方式
-  - 轻量化模型运行于嵌入式硬件
-
-- **AI 对话功能**
-  - 基于云端的大语言模型（LLM）交互
-  - 上下文感知式对话
-  - 人格化驱动的回复逻辑
-
-
-- **实时动画引擎**
-  - 基于Sprite的角色动画
-  - 基于情绪的动画切换机制
-
-- **触摸屏交互界面**
-  - 为嵌入式设备定制的交互式图形界面（GUI）
-  - 实时反馈与视觉响应
+当前版本已经整理成可直接在 `Keil μVision` 中编译的模块化工程。
 
 ---
 
-## 🧠 系统架构
-| Touch Screen | 
-- >
-| STM32 Embedded System|
+## 一、项目目录结构
 
-| - UI Engine |
-
-| - Animation Engine |
-
-| - Emotion Engine |
-
-| - Gesture Recognition|
-
-- >
-| Edge AI Service |
-
-| - Agent Controller |
-
-| - Memory System |
-
-| - Personality Model |
-
-- >
-  
-| LLM API |
-
-
-
----
-
-## 🖥 硬件配置
-
-- STM32F103VET6 微控制器
-- 触摸屏液晶显示器
-
----
-
-## 🧩 软件栈
-
-Embedded Side:
-
-- C / C++
-- LVGL GUI Library
-- TinyML inference
-
-Edge AI Service:
-
-- Python
-- LLM API
-- Emotion & behavior controller
-
----
-
-## 🎮 交互示例
-
-用户触摸虚拟角色
-→ 角色呈现愉悦情绪
-
-用户绘制指定手势
-→ 手势识别触发对应动画效果
-
-用户闲置设备未操作
-→ AI 角色产生无聊情绪并主动发起对话
-
-------
-
-## 📊 未来优化方向
-
-- 语音交互功能
-- 设备端 TinyML 情绪识别
-- 基于强化学习的行为演变机制
-- 多角色交互能力
-
----
-
-
-# 项目结构与硬件连接
-# 嵌入式AI虚拟角色系统 - 项目结构与硬件连接
-
-## 📋 项目概述
-
-该项目是一个运行在 **STM32F103VET6** 上的嵌入式AI虚拟角色交互系统，通过 **ESP32-WRQOM-32E** 作为网络网关与云端LLM服务通信，为用户提供情感化的交互体验。
-
----
-
-## 🏗️ 系统架构
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    云端 LLM API 服务                              │
-│              (http://0.0.0.0:8000/scene_story_serial)       │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTP JSON
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                   ESP32-WRQOM-32E 网络网关                       │
-│          (WiFi + UART2 串口通信 @ 115200 baud)                  │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ UART
-                               │ (SCENE:|IDX:)
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│           STM32F103VET6 主控制器 + ILI9341 LCD                   │
-│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐        │
-│  │  UI/Animation   │  │ Emotion      │  │ Gesture      │        │
-│  │  Engine         │  │ Engine       │  │ Recognition  │        │
-│  └─────────────────┘  └──────────────┘  └──────────────┘        │
-│                                                                  │
-│  Display: 160x120 LCD (ILI9341)  Touch: XPT2046                 │
-│  Buttons: K1, K2                                                │
-└──────────────────────────────────────────────────────────────────┘
+```text
+STM32_AI_Character/
+├─ μVision_AI_character/                  # STM32 固件工程
+│  ├─ Project/RVMDK（uv5）/BH-F103.uvprojx
+│  └─ User/
+│     ├─ main.c                           # 最小入口，仅保留启动与初始化
+│     ├─ ai_app.c / ai_app.h              # 页面状态机、输入分发、待机逻辑
+│     ├─ ai_ui.c / ai_ui.h                # 三个页面的 UI 绘制
+│     ├─ ai_chat.c / ai_chat.h            # 串口协议、回包解析、mock 逻辑
+│     ├─ ai_app_data.c / ai_app_data.h    # 场景数据、文案、布局常量
+│     └─ ai_app_utils.c / ai_app_utils.h  # 文本裁切、换行、串口辅助函数
+├─ esp32_bridge/
+│  └─ STM32_AI_Bridge/
+│     └─ STM32_AI_Bridge.ino              # ESP32 串口桥接程序
+├─ docs/
+│  └─ v3_modules_requirements.md          # 后续模块需求文档
+├─ main.py                                # FastAPI 后端入口
+├─ ai_partner_memory.db                   # 本地记忆数据库
+|─ text_to_speech.py                      # Text to Speech
+|-audio/                                  # 挂载mp3静态文件
+└─ README.md
 ```
 
 ---
 
-## 🔌 硬件连接详解
+## 二、STM32 工程编译说明
 
-### 1. ESP32 ↔ STM32 串口通信
+### 1. 开发环境
 
-| 连接点 | ESP32 | STM32F103 | 功能 |
-|---------|--------|-----------|------|
-| **RX** | GPIO 16 (UART2 RX) | PA2 (UART2 TX) | 接收STM32数据 |
-| **TX** | GPIO 17 (UART2 TX) | PA3 (UART2 RX) | 发送数据给STM32 |
-| **GND** | GND | GND | 地线 |
-| **波特率** | 115200 bps | 115200 bps | 数据率 |
+- `Keil MDK-ARM / μVision5`
+- `ARM Compiler 5`
 
-**ESP32代码配置** (`esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino`):
-```cpp
-// UART2 <-> STM32
-static const int STM32_RX_PIN = 16;      // ESP32 接收脚 (来自STM32 TX)
-static const int STM32_TX_PIN = 17;      // ESP32 发送脚 (到STM32 RX)
-static const uint32_t STM32_BAUD = 115200;
----
+当前验证通过的编译器版本：
 
-### 2. STM32F103VET6 - 触摸LCD 接口
+- `V5.06 update 6 (build 750)`
 
-#### 📺 LCD屏幕 (ILI9341) - FSMC接口
+### 2. 工程位置
 
-| 信号 | STM32 引脚 | 功能 | 说明 |
-|------|-----------|------|------|
-| **命令** | - | 写命令 | 通过FSMC访问地址 0xA0000000 |
-| **数据** | - | 写数据 | 通过FSMC访问地址 0xA0000002 |
+请在 `μVision` 中打开：
 
-**宏定义**:
-```c
-#define LCD_CMD   (*((volatile uint16_t *)FSMC_Addr_ILI9341_CMD))
-#define LCD_DATA  (*((volatile uint16_t *)FSMC_Addr_ILI9341_DATA))
+```text
+μVision_AI_character/Project/RVMDK（uv5）/BH-F103.uvprojx
 ```
 
-- **屏幕分辨率**: 240×320 像素
-- **触摸屏**: 160×120 显示区域 (用于头像)
-- **接口类型**: FSMC (灵活的静态内存控制器)
+工程关键信息：
+
+- Target：`LDC`
+- Device：`STM32F103VE`
+- Output：`Template`
+
+### 3. 编译步骤
+
+1. 打开 `BH-F103.uvprojx`
+2. 确认当前 Target 为 `LDC`
+3. 点击 `Rebuild`
+
+当前工程文件已经包含拆分后的新模块，不需要手动再往工程里加文件。
 
 ---
 
-#### ✏️ 触摸屏 (XPT2046) - SPI接口
+## 三、STM32 端当前功能
 
-**引脚配置** (`xpt2046_ai_ready/bsp_xpt2046_lcd.h`):
+### 1. 页面流程
 
-| 引脚 | 端口 | 管脚 | 功能 |
-|------|------|------|------|
-| **CS** | GPIOD | Pin 13 | 芯片选择 |
-| **CLK** | GPIOE | Pin 0 | 时钟 |
-| **MOSI** | GPIOE | Pin 2 | 主出从入 |
-| **MISO** | GPIOE | Pin 3 | 主入从出 |
-| **PENIRQ** | GPIOE | Pin 4 | 触摸中断 (低有效) |
+系统当前流程为：
 
-**数据通道配置**:
-```c
-#define XPT2046_CHANNEL_X  0x90    // Y+通道 (实际读X坐标)
-#define XPT2046_CHANNEL_Y  0xd0    // X+通道 (实际读Y坐标)
-```
+1. 封面页
+2. 场景/话题选择页
+3. 多轮对话页
 
----
+### 2. 交互方式
 
-### 3. STM32F103VET6 - 用户输入接口
+- `K1 短按`：切换场景或切换选项
+- `K1 长按`：反向切换
+- `K2 短按`：确认当前选择
+- `K2 长按`：返回上一页
+- 触摸点击：选择场景或选择选项
+- 触摸滑动：场景翻动或页面切换
 
-#### 🔘 按键输入
+### 3. 当前内置场景
 
-| 按键 | 功能 | 位置 |
-|------|------|------|
-| **K1** | 上/切换/选择 | 左按键 |
-| **K2** | 确认/进入 | 右按键 |
-| **长按 K2** | 返回/退出 | 2秒+ |
+当前已内置多个场景，例如：
 
-**交互模式**:
-- PAGE_COVER: K1/K2 进入场景选择
-- PAGE_SCENE_SELECT: K1前后翻页, K2进入聊天
-- PAGE_CHAT: K1选择选项, K2确认
+- 逛街约会
+- 一起开黑
+- 咖啡馆
+- 图书馆
+- 晚安夜聊
+- 鼓励模式
+- 散步吹风
+- 一起吃饭
+- 电影时间
+- 音乐分享
+- 考试前夕
+- 休息陪伴
 
-#### ✋ 手势识别
+### 4. 本地兜底逻辑
 
-支持的手势 (触摸屏):
-- **TAP** - 单点击
-- **SWIPE_LEFT** - 向左滑
-- **SWIPE_RIGHT** - 向右滑
-- **LONG_PRESS** - 长按
+如果 STM32 没有接上 ESP32，或者后端没有连通，系统仍然可以使用本地 mock 回复进行演示，不会卡死。
 
 ---
 
-## 📡 通信协议
+## 四、STM32 模块职责说明
 
-### ESP32 ← → STM32 消息格式
+### `main.c`
 
-#### 1️⃣ STM32 → ESP32 (发送场景请求)
+只保留两类职责：
 
-**格式**: `SCENE:<scene_key>[|IDX:<option_index>]\n`
+- `main()`
+- 硬件初始化入口
 
-**示例**:
-```
-SCENE:shopping\n              // 进入购物场景
-SCENE:cafe|IDX:1\n           // 咖啡馆场景，选择第2个选项
-```
+### `ai_app.c`
 
-**场景关键字**:
-- `shopping` - 逛街约会
-- `gaming` - 一起开黑
-- `cafe` - 咖啡馆
-- `library` - 图书馆
-- `night` - 晚安夜聊
-- `encourage` - 鼓励模式
-- `walk` - 散步吹风
-- `dinner` - 一起吃饭
-- `movie` - 电影时间
-- `music` - 音乐分享
-- `exam` - 考前陪伴
-- `rest` - 休息陪伴
+负责：
 
-#### 2️⃣ ESP32 → STM32 (发送AI回复)
+- 页面状态机
+- 按键与触摸输入分发
+- 场景切换
+- 对话选项切换
+- 待机反馈逻辑
 
-**格式**: `TEXT=<reply_hex>|OPT1=<opt1_hex>|OPT2=<opt2_hex>|OPT3=<opt3_hex>|AVATAR=<avatar_type>\n`
+### `ai_ui.c`
 
-**示例**:
-```
-TEXT=C4E3CFCBCBB5E3D2BB...|OPT1=CFCBC8B1|OPT2=...|OPT3=...|AVATAR=happy\n
-```
+负责：
 
-**字段说明**:
-- `TEXT`: AI回复文本 (GBK编码的16进制)
-- `OPT1-3`: 三个选项 (GBK编码的16进制)
-- `AVATAR`: 头像状态 (happy, shy, gentle, thinking, tired, curious)
+- 封面页绘制
+- 场景页绘制
+- 对话页绘制
+- 头像缩放显示
+- 对话文本与选项显示
 
-**解析代码** (`μVision_AI_character/User/main.c`):
-```c
-Chat_ParseReply(char *buf)  // 解析上述格式的消息
-```
+### `ai_chat.c`
 
----
+负责：
 
-## 📁 项目目录结构
+- 进入场景后的首轮请求
+- 选项发送
+- 串口回包解析
+- 本地 mock 回复
+- avatar 状态解析
 
-```
-Embodied-AI-Virtual-Character-on-Embedded-System/
-│
-├── 📁 esp32_bridge/
-│   └── STM32_AI_Bridge/
-│       └── STM32_AI_Bridge.ino          # ESP32网络网关代码
-│
-├── 📁 μVision_AI_character/
-│   ├── User/
-│   │   └── main.c                       # STM32主程序 (UI + 通信)
-│   ├── Libraries/
-│   │   ├── CMSIS/                       # STM32 HAL库
-│   │   └── FWlib/                       # STM32 固件库
-│   └── Doc/
-│
-├── 📁 facial/
-│   ├── ai_avatars.c/h                   # 头像图像资源
-│   └── avatar_*.png                     # 头像素材 (160x120)
-│
-├── 📁 gesture/
-│   ├── gesture.c/h                      # 手势识别引擎
-│
-├── 📁 key_input/
-│   ├── key_input.c/h                    # 按键处理
-│
-|—— 📁 audio/
-│   ├── ...                           # 静态挂载文夹                    
-├── 📁 xpt2046_ai_ready/
-│   ├── bsp_xpt2046_lcd.c/h              # 触摸屏驱动
-│   └── avatar_contact_sheet_160x120.png # 头像合并表
-│
-├── ESP32_Hello/
-│   └── ESP32_Hello.ino                  # ESP32简单测试代码
-│
-├── main.py                              # Python后端 (可选)
-|—— text_to_speech.py                    # 语音模块
-└── README.md                            # 项目说明
-```
+### `ai_app_data.c`
+
+负责：
+
+- 场景表
+- UI 中文文案
+- 待机提示文案
+- 布局与颜色常量
+
+### `ai_app_utils.c`
+
+负责：
+
+- 文本按像素宽度裁切
+- 自动换行
+- 省略号处理
+- 字符串拼接
+- 串口收发辅助
 
 ---
 
-## 🎯 关键功能模块
+## 五、ESP32 串口桥接说明
 
-### 1. UI引擎 (main.c)
+桥接文件：
 
-**页面状态**:
-```c
-typedef enum {
-    PAGE_COVER,          // 封面页
-    PAGE_SCENE_SELECT,   // 场景选择
-    PAGE_CHAT            // 聊天交互
-} AppPage;
+```text
+esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino
 ```
 
-**显示区域**:
-- 头像区: (32, 24) - 176×132像素
-- 对话框: (6, 162) - 228×80像素
-- 选项区: (6, 248) - 228×69像素 (3个选项)
-- 底部提示: (0, 298)
+### 1. 作用
 
-### 2. 情绪引擎
+ESP32 负责接收 STM32 发来的串口请求，访问 FastAPI 后端，再把结果通过串口发回 STM32。
 
-**支持的情绪状态**:
-- `AVATAR_HAPPY` - 开心
-- `AVATAR_SHY` - 害羞
-- `AVATAR_GENTLE` - 温柔
-- `AVATAR_THINKING` - 思考
-- `AVATAR_TIRED` - 疲倦
-- `AVATAR_CURIOUS` - 好奇
+### 2. 串口协议
 
-### 3. 手势识别
+STM32 -> ESP32：
 
-```c
-typedef enum {
-    GESTURE_NONE,
-    GESTURE_TAP,          // 点击
-    GESTURE_SWIPE_UP,     // 向上
-    GESTURE_SWIPE_DOWN,   // 向下
-    GESTURE_SWIPE_LEFT,   // 向左
-    GESTURE_SWIPE_RIGHT,  // 向右
-    GESTURE_LONG_PRESS    // 长按
-} GestureType;
+```text
+SCENE:shopping
+SCENE:shopping|IDX:0
+SCENE:gaming|IDX:2
 ```
 
-### 4. 串口通信
+ESP32 -> STM32：
 
-**收发函数** (main.c):
-- `USART1_SendString()` - 发送字符串到ESP32
-- `USART1_ReadLine()` - 从ESP32读一行数据 (带超时)
-- `USART1_ClearRxBuffer()` - 清空接收缓冲区
-
----
-
-## 🔄 通信流程示例
-
-### 流程1: 用户选择场景
-
-```
-用户触摸"购物"场景
-    ↓
-[STM32] 发送: SCENE:shopping\n
-    ↓
-[ESP32] 接收 → 连接网络 → 调用云端API
-    ↓
-云端LLM 返回: AI回复 + 3个选项 + 头像类型
-    ↓
-[ESP32] 格式化为串口消息发回
-    ↓
-[STM32] 接收: TEXT=....|OPT1=....|OPT2=....|OPT3=....|AVATAR=happy\n
-    ↓
-解析GBK数据 → 显示头像 + 对话 + 选项
+```text
+TEXT=...|OPT1=...|OPT2=...|OPT3=...|AVATAR=happy
 ```
 
-### 流程2: 用户选择回复选项
+### 3. 烧录前需要确认的配置
 
-```
-用户选择选项2 (K1翻页, K2确认)
-    ↓
-[STM32] 获取选项文本 (已缓存)
-    ↓
-[STM32] 发送: SCENE:shopping|IDX:1\n (IDX从0开始)
-    ↓
-[ESP32] 接收 → 更新历史记录 → 调用云端API (包含对话历史)
-    ↓
-重复流程1的后续步骤...
-```
+请检查 `.ino` 中以下内容：
 
----
+- `WIFI_SSID`
+- `WIFI_PASS`
+- `API_BASE_URL`
+- `API_PATH`
 
-## 🖥️ Arduino IDE 环境配置与调试 (ESP32)
+### 4. 推荐接线
 
-### 1. 安装 Arduino IDE
+当前 STM32 工程使用 `USART2`：
 
-**方案 A: 在线安装 (推荐)**
-1. 访问 [Arduino官网](https://www.arduino.cc/en/software)
-2. 下载 **Arduino IDE 2.0+** 版本 (Windows/Mac/Linux)
-3. 安装完成后启动 Arduino IDE
+- `STM32 PA2 = TX`
+- `STM32 PA3 = RX`
 
-**方案 B: 便携版本**
-- 直接下载便携版本，解压后运行 `arduino.exe` (无需管理员权限)
+ESP32 桥接默认使用：
 
----
+- `GPIO16 = RX`
+- `GPIO17 = TX`
 
-### 2. 添加 ESP32 开发板支持
+连接方式：
 
-**步骤 1: 打开开发板管理器**
-- Arduino IDE → 菜单 `Tools` → `Board` → `Boards Manager...`
-- 或快捷键: Ctrl+Shift+B
+- `ESP32 GPIO17 (TX) -> STM32 PA3 (RX)`
+- `ESP32 GPIO16 (RX) -> STM32 PA2 (TX)`
+- `GND -> GND`
 
-**步骤 2: 搜索并安装 ESP32 支持**
 
-在 Boards Manager 搜索框中输入：
-```
-esp32
+
+### 5. 串口监视器
+
+波特率：
+
+```text
+115200
 ```
 
-选择 `esp32` (由 Espressif Systems 官方维护)，点击 **Install** 最新版本
+正常启动后应看到类似日志：
 
-**推荐版本**: v2.0.0 或更新
-
-**等待时间**: 首次安装需 2-5 分钟 (含下载编译工具链)
-
----
-
-### 3. 安装必要的库
-
-**步骤 1: 打开库管理器**
-- Arduino IDE → 菜单 `Tools` → `Manage Libraries...`
-- 或快捷键: Ctrl+Shift+I
-
-**步骤 2: 安装所需库**
-
-| 库名 | 用途 | 注意事项 |
-|------|------|----------|
-| ArduinoJson | JSON 解析 | `ArduinoJson` |
-| WiFi | WiFi 连接 | 内置库 (无需安装) |
-| HTTPClient | HTTP 请求 | 内置库 (无需安装) |
-| ESP32-audioI2S-master | 扬声 | 3.0.13及以下版本 |
-
-
----
-
-### 4. 配置开发板参数
-
-**步骤 1: 选择开发板**
-
-- Arduino IDE → 菜单 `Tools` → `Board` → 搜索框输入 `ESP32`
-- 选择 **`ESP32 Dev Module`** (最通用, 兼容 ESP32-WRQOM-32E)
-
-**步骤 2: 配置开发板选项**
-
-菜单 `Tools` → 设置以下参数:
-
-| 参数 | 设置值 | 说明 |
-|------|--------|------|
-| **Board** | ESP32 Dev Module | 开发板型号 |
-| **Upload Speed** | 921600 | 烧录速度 (快) |
-| **CPU Frequency** | 240 MHz | 主频 |
-| **Flash Frequency** | 80 MHz | Flash频率 |
-| **Flash Mode** | QIO | Flash模式 |
-| **Flash Size** | 4MB | Flash大小 |
-| **Partition Scheme** | HUGE APP | 分区方案 |
-| **Core Debug Level** | Info | 调试级别 |
-| **Port** | COM3 (或自动识别) | USB串口 |
-
-**配置图示**:
-```
-Tools
-├── Board → ESP32 Dev Module
-├── Upload Speed → 921600
-├── CPU Frequency → 240 MHz
-├── Flash Frequency → 80 MHz
-├── Flash Mode → QIO
-├── Flash Size → 4MB
-├── Partition Scheme → HUGE APP
-├── Core Debug Level → Info
-└── Port → COM3
-```
-
----
-
-### 5. 连接 ESP32 到 PC及MAX 98357A
-
-**硬件连接**:
-
-1. 用 **Micro-USB 数据线** 连接 ESP32 到 PC
-2. LED 指示灯应该亮起 (红色/绿色)
-3. 打开设备管理器检查串口是否识别
-4. LRC-->25 BCLK-->26 DIN-->22 GND-->GND VIN-->3V3
-
-
-**Windows 驱动**:
-- 大多数 ESP32-WRQOM-32E 开发板集成 CH340 USB芯片
-- 自动安装驱动，若未安装可从 [CH340官网](http://www.wch.cn/downloads/CH341SER_ZIP.html) 下载
-
-**验证串口**:
-- Windows: 设备管理器 → 端口 (COM和LPT) → 查看 `COM3` 或 `USB Serial Device`
-- Mac: 终端运行 `ls /dev/tty.usbserial*`
-- Linux: 终端运行 `ls /dev/ttyUSB*`
-
----
-
-### 6. 打开项目代码
-
-**步骤 1: 打开 Arduino IDE**
-
-**步骤 2: 打开 ESP32 项目**
-```
-File → Open
-导航到: esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino
-```
-
-或直接双击该文件打开
-
----
-
-### 7. 编译和烧录
-
-**步骤 1: 编译代码**
-
-点击工具栏 **✓ 按钮** (Verify/Compile)
-
-```
-预期输出:
-Compiling sketch...
-Archiving built core (caching)...
-Sketching built core...
-Sketch uses 234567 bytes...
-```
-
-**步骤 2: 上传到 ESP32**
-
-点击工具栏 **→ 按钮** (Upload)
-
-```
-预期输出:
-Connecting........
-Uploading...
-A lot of dots (.........)
-[==========] 100%
-esptool.py v4.x done
-
-Leaving...
-Hard resetting via RTS pin...
-```
-
-**首次上传耗时**: 20-30 秒
-
-**若连接失败**:
-- 检查 USB 线是否完好
-- 尝试按 ESP32 上的 **BOOT** 按钮进入下载模式
-- 更新驱动或更换 USB 端口
-
----
-
-### 8. 串口监视器 - 实时调试
-
-**打开串口监视器**:
-
-菜单 `Tools` → `Serial Monitor`
-
-或快捷键: **Ctrl+Shift+M**
-
-**配置参数**:
-
-右下角设置:
-- **波特率**: 115200
-- **行结束符**: `Both NL & CR`
-
-**预期输出** (ESP32启动):
-```
+```text
 [bridge] boot
 [bridge] uart2 baud=115200
-[bridge] api=http://10.129.215.6:8000/scene_story_serial
+[bridge] api=http://你的电脑IP:8000/scene_story_serial
 [bridge] connecting wifi...
+[bridge] wifi ok, ip=...
 ```
 
-**监视器技巧**:
-- 勾选 **Autoscroll** - 自动滚动到最新消息
-- 勾选 **Show timestamp** - 显示消息时间戳
-- 输入框可发送AT命令或调试消息
-- `Ctrl+L` 清空输出
+### 6. 语音模块
+
+语音模块接线：
+- 'LRC-->25' 
+- 'BCLK-->26'
+- 'DIN-->22'
+- 'GND-->GND'
+- 'VIN-->3V3'
+
+注意事项：
+- 安装ESP32-audioI2S-master(3.0.13版本及以前)
+- tool选项卡partition scheme选择"HUGE APP"以获得充足内存
+---
+
+## 六、FastAPI 后端说明
+
+后端入口文件：
+
+```text
+main.py
+```
+
+### 1. Python 环境
+
+推荐：
+
+- `Python 3.10+`
+
+### 2. 安装依赖
+
+仓库现在已经补充了 `requirements.txt`，可直接执行：
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. 环境变量
+
+先复制：
+
+```text
+.env.example -> .env
+```
+
+然后在 `.env` 中填写：
+
+```text
+DEEPSEEK_API_KEY=你的密钥
+```
+
+### 4. 启动方式
+
+在仓库根目录运行：
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+启动后可访问：
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### 5. 当前主要接口
+
+- `POST /scene_serial`
+- `POST /scene_story_serial`
+- `POST /chat`
+
+实际联调推荐使用：
+
+- `POST /scene_story_serial`
 
 ---
 
-### 9. 实时调试技巧
+## 七、最短上手流程
 
-**运行时监视**:
+### 方案 A：只验证 STM32 UI
 
-使用 `Serial Monitor` 实时观看输出，快速定位问题:
+1. 用 `μVision` 打开工程
+2. 编译并烧录 STM32
+3. 检查封面页、场景页、对话页是否正常显示
 
-```
-[bridge] boot
-[bridge] uart2 baud=115200
-[bridge] api=http://10.129.215.6:8000/scene_story_serial
-[bridge] connecting wifi...        ← WiFi连接中
-........
-[bridge] wifi ok, ip=192.168.1.100 ← WiFi连接成功
-[RECV] SCENE:shopping              ← 接收STM32命令
-[bridge] POST http://...           ← 调用API
-[bridge] raw response={"reply":... ← API响应
-[bridge] send serial=<gbk packet>  ← 发送回复
-```
+### 方案 B：STM32 + ESP32
 
----
+1. 编译并烧录 STM32
+2. 配置并烧录 ESP32 `.ino`
+3. 接好串口线
+4. 观察 ESP32 串口监视器日志
 
-### 10. 常见问题排查
+### 方案 C：完整联调
 
-| 问题 | 症状 | 解决方案 |
-|------|------|--------|
-| **无法检测到开发板** | Port 下拉菜单为空 | 1. 检查USB线; 2. 重装CH340驱动; 3. 尝试USB HUB |
-| **上传失败** | 出现 `timeout` 错误 | 按BOOT按钮, 或选择更低波特率 (115200) |
-| **编译错误** | `undefined reference` | 检查库是否安装完整, 重启IDE |
-| **乱码输出** | 串口监视器显示乱码 | 检查波特率设置是否为 115200 |
-| **WiFi 无法连接** | 卡在 `connecting wifi...` | 检查SSID/密码, WiFi是否在2.4GHz |
-| **API 无响应** | 无 HTTP 输出 | 检查网络连接, API地址是否正确 |
-| **STM32 无回复** | 无 `[RECV]` 输出 | 检查串口接线, 波特率 |
+1. 启动 FastAPI
+2. 烧录 ESP32
+3. 烧录 STM32
+4. 进入任意场景
+5. 检查动态回复、动态选项和头像状态是否正常
 
 ---
 
-### 11. 性能监视
+## 八、常见问题
 
-**查看 ESP32 资源使用情况**:
+### 1. μVision 能编译，但烧录后没反应
 
-在 `setup()` 中添加:
+优先检查：
 
-```cpp
-Serial.print("Flash Size: ");
-Serial.print(ESP.getFlashChipSize() / 1024 / 1024);
-Serial.println(" MB");
+- `ST-Link` 连接
+- 板子供电
+- `Connect under Reset`
+- 下载算法是否正确
 
-Serial.print("PSRAM Size: ");
-Serial.print(ESP.getPsramSize() / 1024 / 1024);
-Serial.println(" MB");
-```
+### 2. ESP32 串口监视器出现 `http failed, status=-1`
 
-在 `loop()` 中定期输出:
+通常是后端地址或局域网问题，请检查：
 
-```cpp
-static unsigned long lastCheck = 0;
-if (millis() - lastCheck > 10000) {  // 每10秒输出一次
-  lastCheck = millis();
-  Serial.print("[MONITOR] Free heap: ");
-  Serial.print(ESP.getFreeHeap());
-  Serial.print(" bytes, WiFi RSSI: ");
-  Serial.println(WiFi.RSSI());  // 信号强度
-}
-```
+- `API_BASE_URL`
+- 电脑当前局域网 IP
+- `uvicorn` 是否使用 `0.0.0.0`
+- Windows 防火墙是否放行 `8000`
 
----
+### 3. STM32 屏幕内容与 ESP32 日志不一致
 
-## ⚙️ WiFi 配置 (ESP32)
+优先检查：
 
-**配置位置**: `esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino`
+- TX/RX 是否交叉连接
+- 是否使用当前仓库里的 `USART2` 版本固件
+- STM32 是否真的烧录到最新固件
 
-```cpp
-static const char *WIFI_SSID = "Redmi K70 Ultra";       // WiFi SSID
-static const char *WIFI_PASS = "wkm4m5gpb6zgsmz";       // WiFi密码
-static const char *API_BASE_URL = "http://10.129.215.6:8000";  // 后端地址
-static const char *API_PATH = "/scene_story_serial";    // API路径
-```
+### 4. 中文出现乱码
+
+当前 STM32 侧依赖 `GBK` 路径显示中文。若出现乱码，请检查：
+
+- STM32 是否烧录了最新固件
+- ESP32 bridge 是否与当前仓库版本一致
+- 串口回包是否仍符合当前协议
 
 ---
 
-## 🐛 调试信息
+## 九、当前项目状态
 
-### ESP32 Debug输出 (Serial @ 115200)
-```
-[bridge] boot
-[bridge] uart2 baud=115200
-[bridge] api=http://10.129.215.6:8000/scene_story_serial
-[bridge] connecting wifi...
-[bridge] wifi ok, ip=192.168.1.100
-[bridge] recv frame=SCENE:shopping
-[bridge] POST http://...
-[bridge] send serial=<gbk packet>
-```
+当前仓库更偏向“可演示原型”，而不是最终产品封装版。
+
+已经具备：
+
+- STM32 模块化 UI 与交互逻辑
+- ESP32 串口桥接
+- FastAPI + LLM 动态对话
+- 场景化多轮选项交互
+- ESP32 GET云端mp3文件 + MAX98357A播放
+
+后续可继续扩展：
+
+- 好感度与情绪记忆模块
+- 视觉感知模块
+- 剧情分支模块
 
 ---
+
+## 十、建议提交前自检
+
+如果你准备把仓库交给其他人使用，建议先确认：
+
+1. `BH-F103.uvprojx` 能在本机 `μVision` 正常打开
+2. `LDC` Target 能直接编译通过
+3. `.env.example` 内容完整
+4. `STM32_AI_Bridge.ino` 中的 Wi-Fi 和 IP 配置清晰
+5. README 中的路径与仓库结构一致
 

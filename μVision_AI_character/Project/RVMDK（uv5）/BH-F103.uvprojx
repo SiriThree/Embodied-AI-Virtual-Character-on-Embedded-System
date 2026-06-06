@@ -542,6 +542,31 @@
               <FilePath>..\..\User\main.c</FilePath>
             </File>
             <File>
+              <FileName>ai_app_data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\ai_app_data.c</FilePath>
+            </File>
+            <File>
+              <FileName>ai_app_utils.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\ai_app_utils.c</FilePath>
+            </File>
+            <File>
+              <FileName>ai_ui.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\ai_ui.c</FilePath>
+            </File>
+            <File>
+              <FileName>ai_chat.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\ai_chat.c</FilePath>
+            </File>
+            <File>
+              <FileName>ai_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\ai_app.c</FilePath>
+            </File>
+            <File>
               <FileName>stm32f10x_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\stm32f10x_it.c</FilePath>

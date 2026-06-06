@@ -195,6 +195,26 @@ static bool buildSerialPacketFromHex(JsonDocument &respDoc, uint8_t *buf, size_t
   return true;
 }
 
+static void buildFallbackPacket(uint8_t *buf, size_t &len, bool unknownScene) {
+  const char *replyHex = unknownScene ? "ced2cfc8c5e3c4e3cbe6b1e3c1c4c1c4" : "ced2cfc8c5e3c4e3bcccd0f8c1c4d1bd";
+  const char *opt1Hex = unknownScene ? "c4c7c4e3cfc8bfaabfdad1bd" : "cfc8bcccd0f8d5e2b8f6bbb0cce2";
+  const char *opt2Hex = unknownScene ? "c4e3bdf1ccecd3d0b5e3bfc9b0ae" : "bbbbb8f6c7e1cbc9b5c4bbb0cce2";
+  const char *opt3Hex = unknownScene ? "bbbbb8f6b3a1beb0cad4cad4" : "b5c8cdf8c2e7bbd6b8b4d4d9c1c4";
+
+  len = 0;
+  appendAsciiBytes(buf, len, "TEXT=");
+  appendHexBytes(buf, len, String(replyHex));
+  appendAsciiBytes(buf, len, "|OPT1=");
+  appendHexBytes(buf, len, String(opt1Hex));
+  appendAsciiBytes(buf, len, "|OPT2=");
+  appendHexBytes(buf, len, String(opt2Hex));
+  appendAsciiBytes(buf, len, "|OPT3=");
+  appendHexBytes(buf, len, String(opt3Hex));
+  appendAsciiBytes(buf, len, "|AVATAR=");
+  appendAsciiBytes(buf, len, unknownScene ? "curious" : "gentle");
+  appendAsciiBytes(buf, len, "\n");
+}
+
 static bool callStoryApi(const SceneProfile &scene, SceneState &state, uint8_t *serialBuf, size_t &serialLen, String &reply, String &audioUrl) {
   if (!ensureWiFi()) {
     return false;
