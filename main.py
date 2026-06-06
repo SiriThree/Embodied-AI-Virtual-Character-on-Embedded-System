@@ -7,9 +7,11 @@ from typing import List, Dict, Optional, Tuple
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
-
+from text_to_speech import text_to_speech, get_audio_url
+# 
 # =========================
 # 基础配置
 # =========================
@@ -29,7 +31,8 @@ client = OpenAI(
 
 app = FastAPI()
 
-
+# 挂载audio静态文件夹
+app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 
 
 
@@ -50,6 +53,8 @@ class SceneResponse(BaseModel):
     user_options: List[str]
     options_gbk_hex: List[str]
     avatars: List[str]
+    audio_url: str = ""
+    serial_line: str = ""
 
 def encode_gbk_hex(text: str) -> str:
     return text.encode("gbk", errors="ignore").hex()
@@ -86,14 +91,17 @@ def normalize_options(options: List[str], scene_name: str) -> List[str]:
     return normalized
 
 
-def build_serial_line(reply: str, options: List[str], avatar: str) -> str:
-    return (
+def build_serial_line(reply: str, options: List[str], avatar: str, audio_url: str = "") -> str:
+    line = (
         f"TEXT={reply}|"
         f"OPT1={options[0]}|"
         f"OPT2={options[1]}|"
         f"OPT3={options[2]}|"
         f"AVATAR={avatar}"
     )
+    if audio_url:
+        line += f"|AUDIO={audio_url}"
+    return line
 
 
 def extract_json_object(content: str) -> Dict:
@@ -186,12 +194,20 @@ AI 初始台词：{req.ai_intro}
         user_options = data.get("user_options", ["嗯","好的","随便"])
         avatars = data.get("avatars", ["happy","happy","happy"])
 
+        # 生成语音，根据第一个avatar
+        primary_avatar = avatars[0] if avatars else "gentle"
+        audio_path, audio_file = await text_to_speech(reply, primary_avatar)
+        audio_url = get_audio_url(audio_file) if audio_file else ""
+        serial_line = build_serial_line(reply, user_options, primary_avatar, audio_url)
+
         return SceneResponse(
             reply=reply,
             reply_gbk_hex=encode_gbk_hex(reply),
             user_options=user_options,
             options_gbk_hex=[encode_gbk_hex(opt) for opt in user_options],
-            avatars=avatars
+            avatars=avatars,
+            audio_url=audio_url,
+            serial_line=serial_line
         )
 
     except Exception as e:
@@ -199,12 +215,20 @@ AI 初始台词：{req.ai_intro}
         default_reply = "我在呀~"
         default_options = ["嗯","好的","随便"]
         default_avatars = ["happy","happy","happy"]
+
+        # 生成语音
+        audio_path, audio_file = await text_to_speech(default_reply, "happy")
+        audio_url = get_audio_url(audio_file) if audio_file else ""
+        serial_line = build_serial_line(default_reply, default_options, "happy", audio_url)
+
         return SceneResponse(
             reply=default_reply,
             reply_gbk_hex=encode_gbk_hex(default_reply),
             user_options=default_options,
             options_gbk_hex=[encode_gbk_hex(opt) for opt in default_options],
-            avatars=default_avatars
+            avatars=default_avatars,
+            audio_url=audio_url,
+            serial_line=serial_line
         )
 
 
@@ -219,6 +243,7 @@ class SceneSerialResponse(BaseModel):
     options_gbk_hex: List[str]
     avatar: str
     serial_line: str
+    audio_url: str = ""
 
 
 @app.post("/scene_serial", response_model=SceneSerialResponse)
@@ -279,13 +304,18 @@ Return this schema exactly:
         )
         avatar = "gentle"
 
+    # 生成语音
+    audio_path, audio_file = await text_to_speech(reply, avatar)
+    audio_url = get_audio_url(audio_file) if audio_file else ""
+
     return SceneSerialResponse(
         reply=reply,
         reply_gbk_hex=encode_gbk_hex(reply),
         user_options=user_options,
         options_gbk_hex=[encode_gbk_hex(opt) for opt in user_options],
         avatar=avatar,
-        serial_line=build_serial_line(reply, user_options, avatar),
+        serial_line=build_serial_line(reply, user_options, avatar, audio_url),
+        audio_url=audio_url,
     )
 
 
@@ -324,13 +354,18 @@ async def generate_scene_story_serial(req: SceneRequest):
         )
         avatar = "gentle"
 
+    # 生成语音
+    audio_path, audio_file = await text_to_speech(reply, avatar)
+    audio_url = get_audio_url(audio_file) if audio_file else ""
+
     return SceneSerialResponse(
         reply=reply,
         reply_gbk_hex=encode_gbk_hex(reply),
         user_options=user_options,
         options_gbk_hex=[encode_gbk_hex(opt) for opt in user_options],
         avatar=avatar,
-        serial_line=build_serial_line(reply, user_options, avatar),
+        serial_line=build_serial_line(reply, user_options, avatar, audio_url),
+        audio_url=audio_url,
     )
 
 
@@ -346,6 +381,7 @@ class ChatResponse(BaseModel):
     emotion: str
     mood: str
     animation: str
+    audio_url: str = ""
 
 
 # =========================
@@ -1150,12 +1186,18 @@ async def chat(req: ChatRequest):
     if count > 0 and count % 20 == 0:
         llm_update_profile(user_id)
 
+    # 生成语音，emotion映射到avatar
+    avatar = emotion if emotion in ["happy", "shy", "gentle", "thinking", "curious"] else "gentle"
+    audio_path, audio_file = await text_to_speech(reply, avatar)
+    audio_url = get_audio_url(audio_file) if audio_file else ""
+
     return {
         "reply": reply,
         "reply_gbk_hex": to_gbk_hex(reply),
         "emotion": emotion,
         "mood": mood,
-        "animation": animation
+        "animation": animation,
+        "audio_url": audio_url
     }
 
 

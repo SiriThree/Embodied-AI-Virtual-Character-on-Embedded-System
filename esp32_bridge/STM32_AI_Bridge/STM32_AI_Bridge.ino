@@ -1,11 +1,12 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include "Audio.h"
 #include <ArduinoJson.h>
 
 // Update these values before flashing the ESP32.
-static const char *WIFI_SSID = "Redmi K70 Ultra";
-static const char *WIFI_PASS = "wkm4m5gpb6zgsmz";
-static const char *API_BASE_URL = "http://10.129.215.6:8000";
+static const char *WIFI_SSID = "test";
+static const char *WIFI_PASS = "12345678";
+static const char *API_BASE_URL = "http://192.168.24.231:8000";
 static const char *API_PATH = "/scene_story_serial";
 
 // UART2 <-> STM32
@@ -13,9 +14,16 @@ static const int STM32_RX_PIN = 16;
 static const int STM32_TX_PIN = 17;
 static const uint32_t STM32_BAUD = 115200;
 
+// I2S <-> MAX98357 (Audio amplifier)
+static const int I2S_BCLK = 26;
+static const int I2S_LRC = 25;
+static const int I2S_DOUT = 22;
+
+Audio audio;
+
 static const int HISTORY_LIMIT = 8;
 static const int SCENE_COUNT = 12;
-static const size_t SERIAL_BUF_SIZE = 768;
+static const size_t SERIAL_BUF_SIZE = 512;
 
 struct SceneProfile {
   const char *key;
@@ -118,25 +126,15 @@ static bool ensureWiFi() {
     return true;
   }
 
-  Serial.println("[bridge] connecting wifi...");
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
-    Serial.print(".");
     delay(300);
   }
 
-  Serial.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("[bridge] wifi ok, ip=");
-    Serial.println(WiFi.localIP());
-    return true;
-  }
-
-  Serial.println("[bridge] wifi failed");
-  return false;
+  return WiFi.status() == WL_CONNECTED;
 }
 
 static uint8_t hexNibble(char ch) {
@@ -172,36 +170,32 @@ static bool buildSerialPacketFromHex(JsonDocument &respDoc, uint8_t *buf, size_t
   const char *replyHex = respDoc["reply_gbk_hex"];
   JsonArray optionHexArray = respDoc["options_gbk_hex"].as<JsonArray>();
   const char *avatar = respDoc["avatar"];
+  const char *audioUrl = respDoc["audio_url"];
 
   if (replyHex == nullptr || optionHexArray.isNull() || optionHexArray.size() < 3 || avatar == nullptr) {
     return false;
-  }
-
-  String optHex[3];
-  for (int i = 0; i < 3; ++i) {
-    const char *item = optionHexArray[i];
-    if (item == nullptr) {
-      return false;
-    }
-    optHex[i] = String(item);
   }
 
   len = 0;
   appendAsciiBytes(buf, len, "TEXT=");
   appendHexBytes(buf, len, String(replyHex));
   appendAsciiBytes(buf, len, "|OPT1=");
-  appendHexBytes(buf, len, optHex[0]);
+  appendHexBytes(buf, len, String((const char *)optionHexArray[0]));
   appendAsciiBytes(buf, len, "|OPT2=");
-  appendHexBytes(buf, len, optHex[1]);
+  appendHexBytes(buf, len, String((const char *)optionHexArray[1]));
   appendAsciiBytes(buf, len, "|OPT3=");
-  appendHexBytes(buf, len, optHex[2]);
+  appendHexBytes(buf, len, String((const char *)optionHexArray[2]));
   appendAsciiBytes(buf, len, "|AVATAR=");
   appendAsciiBytes(buf, len, avatar);
+  if (audioUrl != nullptr) {
+    appendAsciiBytes(buf, len, "|AUDIO=");
+    appendAsciiBytes(buf, len, audioUrl);
+  }
   appendAsciiBytes(buf, len, "\n");
   return true;
 }
 
-static bool callStoryApi(const SceneProfile &scene, SceneState &state, uint8_t *serialBuf, size_t &serialLen, String &reply) {
+static bool callStoryApi(const SceneProfile &scene, SceneState &state, uint8_t *serialBuf, size_t &serialLen, String &reply, String &audioUrl) {
   if (!ensureWiFi()) {
     return false;
   }
@@ -209,15 +203,15 @@ static bool callStoryApi(const SceneProfile &scene, SceneState &state, uint8_t *
   HTTPClient http;
   String url = String(API_BASE_URL) + API_PATH;
   http.begin(url);
-  http.addHeader("Content-Type", "application/json");
+  http.addHeader(F("Content-Type"), F("application/json"));
 
-  DynamicJsonDocument reqDoc(2048);
-  reqDoc["scene_name"] = scene.name;
-  reqDoc["scene_description"] = scene.description;
-  reqDoc["ai_intro"] = scene.intro;
-  reqDoc["user_id"] = "stm32_player";
+  DynamicJsonDocument reqDoc(1024);
+  reqDoc[F("scene_name")] = scene.name;
+  reqDoc[F("scene_description")] = scene.description;
+  reqDoc[F("ai_intro")] = scene.intro;
+  reqDoc[F("user_id")] = "stm32_player";
 
-  JsonArray history = reqDoc.createNestedArray("history");
+  JsonArray history = reqDoc.createNestedArray(F("history"));
   for (int i = 0; i < state.historyCount; ++i) {
     history.add(state.history[i]);
   }
@@ -225,36 +219,32 @@ static bool callStoryApi(const SceneProfile &scene, SceneState &state, uint8_t *
   String body;
   serializeJson(reqDoc, body);
 
-  Serial.print("[bridge] POST ");
-  Serial.println(url);
-  Serial.print("[bridge] body=");
-  Serial.println(body);
-
   int status = http.POST(body);
   if (status != HTTP_CODE_OK) {
-    Serial.print("[bridge] http failed, status=");
+    Serial.print(F("HTTP error:"));
     Serial.println(status);
     http.end();
     return false;
   }
 
-  DynamicJsonDocument respDoc(4096);
+  DynamicJsonDocument respDoc(2048);
   String raw = http.getString();
-  Serial.print("[bridge] raw response=");
-  Serial.println(raw);
   DeserializationError err = deserializeJson(respDoc, raw);
   http.end();
   if (err) {
-    Serial.print("[bridge] json parse failed: ");
+    Serial.print(F("[bridge] json parse failed: "));
     Serial.println(err.c_str());
     return false;
   }
 
-  reply = String((const char *)respDoc["reply"]);
+  reply = String((const char *)respDoc[F("reply")]);
   reply.trim();
 
+  audioUrl = String((const char *)respDoc[F("audio_url")]);
+  audioUrl.trim();
+
   state.lastOptionCount = 0;
-  JsonArray options = respDoc["user_options"].as<JsonArray>();
+  JsonArray options = respDoc[F("user_options")].as<JsonArray>();
   if (!options.isNull()) {
     for (JsonVariant value : options) {
       if (state.lastOptionCount >= 3) {
@@ -269,28 +259,17 @@ static bool callStoryApi(const SceneProfile &scene, SceneState &state, uint8_t *
   return serialLen > 0;
 }
 
-static String buildFallback(const String &sceneName) {
-  return "TEXT=" + sceneName + "的气氛刚刚好|OPT1=先靠近一点聊|OPT2=故意逗你一下|OPT3=把剧情往下推|AVATAR=gentle";
-}
-
 static void handleFrame(const String &frame) {
   String sceneKey;
   String userChoice;
   int userIndex;
   if (!parseFrame(frame, sceneKey, userChoice, userIndex)) {
-    Serial.print("[bridge] ignored frame=");
-    Serial.println(frame);
     return;
   }
 
-  Serial.print("[bridge] recv frame=");
-  Serial.println(frame);
-
   int sceneIndex = findSceneIndex(sceneKey);
   if (sceneIndex < 0) {
-    Serial.print("[bridge] unknown scene=");
-    Serial.println(sceneKey);
-    Serial2.println("TEXT=我先陪你随便聊聊吧|OPT1=那你先开口呀|OPT2=你今天有点可爱|OPT3=换个场景试试|AVATAR=curious");
+    Serial2.println(F("TEXT=我先陪你随便聊聊吧|OPT1=那你先开口呀|OPT2=你今天有点可爱|OPT3=换个场景试试|AVATAR=curious"));
     return;
   }
 
@@ -304,15 +283,12 @@ static void handleFrame(const String &frame) {
 
   uint8_t serialBuf[SERIAL_BUF_SIZE];
   size_t serialLen = 0;
-  String serialLine;
   String reply;
-  if (!callStoryApi(kScenes[sceneIndex], gSceneStates[sceneIndex], serialBuf, serialLen, reply)) {
-    Serial.println("[bridge] fallback serial line");
-    serialLine = buildFallback(kScenes[sceneIndex].name);
-    reply = "";
-    Serial.print("[bridge] send serial=");
-    Serial.println(serialLine);
-    Serial2.println(serialLine);
+  String audioUrl;
+  if (!callStoryApi(kScenes[sceneIndex], gSceneStates[sceneIndex], serialBuf, serialLen, reply, audioUrl)) {
+    Serial2.print(F("TEXT="));
+    Serial2.print(kScenes[sceneIndex].name);
+    Serial2.println(F("的气氛刚刚好|OPT1=先靠近一点聊|OPT2=故意逗你一下|OPT3=把剧情往下推|AVATAR=gentle"));
     return;
   }
 
@@ -320,24 +296,26 @@ static void handleFrame(const String &frame) {
     appendHistory(sceneIndex, "AI:" + reply);
   }
 
-  Serial.println("[bridge] send serial=<gbk packet>");
+  if (audioUrl.length() > 0) {
+    audio.connecttohost(audioUrl.c_str());
+  }
+
   Serial2.write(serialBuf, serialLen);
 }
 
 void setup() {
   Serial.begin(115200);
   Serial2.begin(STM32_BAUD, SERIAL_8N1, STM32_RX_PIN, STM32_TX_PIN);
-  Serial.println();
-  Serial.println("[bridge] boot");
-  Serial.print("[bridge] uart2 baud=");
-  Serial.println(STM32_BAUD);
-  Serial.print("[bridge] api=");
-  Serial.print(API_BASE_URL);
-  Serial.println(API_PATH);
-  ensureWiFi();
+
+  if (ensureWiFi()) {
+    audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
+    audio.setVolume(9);
+  }
 }
 
 void loop() {
+  audio.loop();
+
   if (!Serial2.available()) {
     delay(10);
     return;
