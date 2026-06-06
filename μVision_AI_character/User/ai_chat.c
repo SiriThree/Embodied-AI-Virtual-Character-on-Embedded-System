@@ -70,7 +70,7 @@ void AI_Chat_SendSelectedOption(AIChatContext *ctx)
 
     ctx->chat_state->ai_text[0] = '\0';
     ctx->ui_show_user_text(user_line);
-    ctx->ui_set_avatar(Emotion_GetFace());
+    ctx->ui_set_avatar(FACE_THINKING);
     ctx->ui_show_ai_text(TXT_THINKING);
 
     SafeStringCopy(send_buf, "SCENE:", MAX_PROTOCOL_BUF);

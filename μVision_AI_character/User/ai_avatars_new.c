@@ -16,7 +16,8 @@ static const AvatarComposition g_avatar_map[] = {
     {avatar_eye_eye_halfclosed, avatar_mouth_mouth_flat},      /* FACE_BORED */
     {avatar_eye_eye_angry, avatar_mouth_mouth_saw},            /* FACE_ANGRY */
     {avatar_eye_eye_sad, avatar_mouth_mouth_reserve_arch},     /* FACE_SAD */
-    {avatar_eye_eye_sagging, avatar_mouth_mouth_flat}          /* FACE_DEPRESSED */
+    {avatar_eye_eye_sagging, avatar_mouth_mouth_flat},         /* FACE_DEPRESSED */
+    {avatar_eye_eye_halfclosed, avatar_mouth_mouth_wave}       /* FACE_THINKING */
 };
 
 void AI_Avatar_Init(void)

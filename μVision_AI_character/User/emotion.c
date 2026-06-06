@@ -114,9 +114,10 @@ void Emotion_Update(void) {
     /*              A_decay = exp(-ln(2) / 400) ≈ 0.998268 */
     #define P_DECAY_PER_STEP  0.998845f
     #define A_DECAY_PER_STEP  0.998268f
+    #define A_DECAY_TARGET   -0.50f     /* 激活度衰减目标: -50 (显示值) */
 
     emo_pleasure *= P_DECAY_PER_STEP;
-    emo_arousal  *= A_DECAY_PER_STEP;
+    emo_arousal = (emo_arousal - A_DECAY_TARGET) * A_DECAY_PER_STEP + A_DECAY_TARGET;
 
     /* 钳位 */
     emo_pleasure = clamp_f(emo_pleasure, -1.0f, 1.0f);

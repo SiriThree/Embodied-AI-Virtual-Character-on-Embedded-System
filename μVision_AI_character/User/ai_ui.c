@@ -437,6 +437,8 @@ static const char *AI_UI_GetAvatarBadge(FaceID_t face)
             return "SAD";
         case FACE_DEPRESSED:
             return "DEPRESS";
+        case FACE_THINKING:
+            return "THINK";
         default:
             return "MOOD";
     }
@@ -516,8 +518,10 @@ static void AI_UI_DrawEmotion(void)
     char buf[32];
     float p, a;
     FaceID_t face;
-    const char *face_names[] = {"Happy", "Content", "Relaxed", "Surprised",
-                                "Neutral", "Bored", "Angry", "Sad", "Depressed"};
+    const char *face_names[] = {"\xBF\xAA\xD0\xC4", "\xC2\xFA\xD7\xE3", "\xB7\xC5\xCB\xC9",
+                                "\xBE\xAA\xD1\xC8", "\xC6\xBD\xBE\xB2", "\xCE\xDE\xC1\xC4",
+                                "\xC9\xFA\xC6\xF8", "\xB1\xAF\xC9\xCB", "\xD3\xF4\xD3\xF4",
+                                "\xCB\xBC\xBF\xBC"};
 
     Emotion_GetState(&p, &a);
     face = Emotion_GetFace();
@@ -527,23 +531,23 @@ static void AI_UI_DrawEmotion(void)
     AI_UI_DrawSoftBackground();
 
     LCD_SetColors(COLOR_TITLE, COLOR_BG);
-    ILI9341_DispString_EN_CH(AI_UI_CenterX("Emotion State"), 20, "Emotion State");
+    ILI9341_DispString_EN_CH(AI_UI_CenterX("\xC7\xE9\xD0\xF7\xD7\xB4\xCC\xAC"), 20, "\xC7\xE9\xD0\xF7\xD7\xB4\xCC\xAC");
 
     AI_UI_DrawCard(20, 60, 200, 140, COLOR_PANEL_DARK, COLOR_FRAME);
 
     LCD_SetColors(COLOR_AI_TEXT, COLOR_PANEL_DARK);
-    ILI9341_DispString_EN_CH(30, 70, "Pleasure:");
-    sprintf(buf, "%.2f", p);
+    ILI9341_DispString_EN_CH(30, 70, "\xD3\xE4\xD4\xC3\xB6\xC8\xA3\xBA");
+    sprintf(buf, "%.0f", p * 100.0f);
     ILI9341_DispString_EN_CH(130, 70, buf);
 
-    ILI9341_DispString_EN_CH(30, 100, "Arousal:");
-    sprintf(buf, "%.2f", a);
+    ILI9341_DispString_EN_CH(30, 100, "\xBC\xA4\xBB\xEE\xB6\xC8\xA3\xBA");
+    sprintf(buf, "%.0f", a * 100.0f);
     ILI9341_DispString_EN_CH(130, 100, buf);
 
-    ILI9341_DispString_EN_CH(30, 130, "Face:");
+    ILI9341_DispString_EN_CH(30, 130, "\xB1\xED\xC7\xE9\xA3\xBA");
     sprintf(buf, "%s", face_names[face]);
     ILI9341_DispString_EN_CH(100, 130, buf);
 
     LCD_SetColors(COLOR_HINT, COLOR_BG);
-    ILI9341_DispString_EN_CH(AI_UI_CenterX("K2Long/SwipeUp: Back"), 260, "K2Long/SwipeUp: Back");
+    ILI9341_DispString_EN_CH(AI_UI_CenterX("\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8"), 260, "\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8");
 }

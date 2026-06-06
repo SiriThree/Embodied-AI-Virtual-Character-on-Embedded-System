@@ -17,6 +17,8 @@ static uint8_t g_scene_scroll = 0;
 static uint8_t g_idle_feedback_index = 0;
 static uint32_t g_idle_count = 0;
 static uint32_t g_emotion_update_count = 0;
+static uint32_t g_emotion_page_refresh_count = 0;
+static FaceID_t g_last_face = FACE_NEUTRAL;
 static ChatState g_chat_state;
 
 static AIUIContext AI_UI_BuildContext(void);
@@ -100,8 +102,36 @@ void AI_App_Run(void)
         g_emotion_update_count++;
         if (g_emotion_update_count >= 10000)
         {
+            FaceID_t current_face;
+
             g_emotion_update_count = 0;
             Emotion_Update();
+
+            current_face = Emotion_GetFace();
+            if (current_face != g_last_face)
+            {
+                g_last_face = current_face;
+
+                if (g_page == PAGE_COVER || g_page == PAGE_CHAT || g_page == PAGE_EMOTION)
+                {
+                    UI_DrawCurrentPage();
+                }
+            }
+        }
+
+        /* Emotion page periodic refresh (3s) */
+        if (g_page == PAGE_EMOTION)
+        {
+            g_emotion_page_refresh_count++;
+            if (g_emotion_page_refresh_count >= 300000)
+            {
+                g_emotion_page_refresh_count = 0;
+                UI_DrawCurrentPage();
+            }
+        }
+        else
+        {
+            g_emotion_page_refresh_count = 0;
         }
     }
 }

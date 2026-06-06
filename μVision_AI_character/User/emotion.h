@@ -12,7 +12,8 @@ typedef enum {
     FACE_BORED      = 5,
     FACE_ANGRY      = 6,
     FACE_SAD        = 7,
-    FACE_DEPRESSED  = 8
+    FACE_DEPRESSED  = 8,
+    FACE_THINKING   = 9
 } FaceID_t;
 
 /* 情绪事件枚举 */
