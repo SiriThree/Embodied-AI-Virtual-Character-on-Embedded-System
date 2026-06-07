@@ -306,8 +306,8 @@ DEEPSEEK_API_KEY=你的密钥
 
 在仓库根目录运行：
 
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+```bashuvicorn main:app --host 0.0.0.0 --port 8000
+
 ```
 
 启动后可访问：
