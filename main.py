@@ -10,7 +10,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
-from text_to_speech import text_to_speech, get_audio_url
+#from text_to_speech import text_to_speech, get_audio_url
+from manbo_speech import text_to_speech,get_audio_url
 # 
 # =========================
 # 基础配置
