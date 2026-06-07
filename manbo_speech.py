@@ -1,7 +1,7 @@
 import os
 import requests
 from pathlib import Path
-from time import time
+import time
 import urllib3
 from dotenv import load_dotenv
 
