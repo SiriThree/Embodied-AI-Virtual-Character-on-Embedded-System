@@ -622,6 +622,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\Libraries\FWlib\src\key_input.c</FilePath>
             </File>
+            <File>
+              <FileName>bsp_led_rgb.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\led\bsp_led_rgb.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -57,27 +57,64 @@ void LED_RGB_Off(void)
     LED_RGB_SetColor(0, 0, 0);
 }
 
+
 /**
- * @brief  呼吸灯处理函数，建议 10ms-20ms 调用一次
- * @param  is_playing: 1开启呼吸, 0熄灭
+ * @brief  平滑退出版呼吸灯处理函数
+ * @param  is_playing: 外部逻辑信号 (1:开始/持续呼吸, 0:停止)
  */
 void LED_RGB_BreathingHandler(uint8_t is_playing)
 {
-    static uint8_t brightness = 0;
-    static int8_t step = 1;
+    // 参数配置
+    #define BREATH_SPEED   1000  // 呼吸速度 (你之前测试的1000比较好)
+    #define PEAK_VAL       255   // 呼吸的顶峰值
+    #define CYCLE_STEPS    (PEAK_VAL * 2) // 总步数 (0->255->0 为 510 步)
 
-    if (!is_playing) {
+    static uint32_t speed_counter = 0;
+    static uint16_t local_tick = 0; 
+    static uint8_t  force_running = 0; // 内部状态锁
+    uint16_t linear_val;
+    uint32_t brightness;
+
+    // 状态机逻辑：
+    // 只要外部想让它亮，或者灯还没熄灭到 0，就强制继续运行
+    if (is_playing) {
+        force_running = 1;
+    }
+
+    if (force_running == 0) {
         LED_RGB_Off();
-        brightness = 0;
         return;
     }
 
-    // 呼吸算法
-    brightness += step;
-    if (brightness >= 200 || brightness <= 5) {
-        step = -step;
+    // 速度控制
+    speed_counter++;
+    if (speed_counter < BREATH_SPEED) return;
+    speed_counter = 0;
+
+    // 计算线性亮度进度 (0 -> 255 -> 0)
+    if (local_tick < PEAK_VAL) {
+        linear_val = local_tick;           // 上坡阶段
+    } else {
+        linear_val = CYCLE_STEPS - local_tick; // 下坡阶段
     }
 
-    // 默认呼吸颜色：青色 (G+B)，你可以根据心情变量在这里修改颜色
-    LED_RGB_SetColor(0, brightness, brightness);
+    // --- 核心优化：平方律映射 (指数级平滑) ---
+    // 这个公式保证了亮度在接近 0 的时候变化非常细腻，不会产生“陡峭”感
+    // 分母 65025 是 255*255 的结果
+    brightness = (uint32_t)linear_val * linear_val * RGB_MAX_BRIGHTNESS / 65025;
+    
+    LED_RGB_SetColor(0, (uint8_t)brightness, (uint8_t)brightness);
+
+    // 更新进度
+    local_tick++;
+
+    // 检查是否走完了一个完整的周期 (0 -> Max -> 0)
+    if (local_tick >= CYCLE_STEPS) {
+        local_tick = 0;
+        
+        // 关键点：当一个完整周期结束时，检查外部是否还要求继续呼吸
+        if (!is_playing) {
+            force_running = 0; // 只有在终点且外部不要求播放时，才真正关闭
+        }
+    }
 }
