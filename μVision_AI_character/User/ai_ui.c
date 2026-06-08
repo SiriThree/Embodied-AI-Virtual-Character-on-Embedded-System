@@ -518,6 +518,11 @@ static void AI_UI_DrawEmotion(void)
     char buf[32];
     float p, a;
     FaceID_t face;
+    uint16_t vol_fill_w;
+    const uint16_t BAR_X = 75; 
+    const uint16_t BAR_W = 110;
+    const uint16_t BAR_Y = 215;
+
     const char *face_names[] = {"\xBF\xAA\xD0\xC4", "\xC2\xFA\xD7\xE3", "\xB7\xC5\xCB\xC9",
                                 "\xBE\xAA\xD1\xC8", "\xC6\xBD\xBE\xB2", "\xCE\xDE\xC1\xC4",
                                 "\xC9\xFA\xC6\xF8", "\xB1\xAF\xC9\xCB", "\xD3\xF4\xD3\xF4",
@@ -547,6 +552,30 @@ static void AI_UI_DrawEmotion(void)
     ILI9341_DispString_EN_CH(30, 130, "\xB1\xED\xC7\xE9\xA3\xBA");
     sprintf(buf, "%s", face_names[face]);
     ILI9341_DispString_EN_CH(100, 130, buf);
+    LCD_SetColors(COLOR_HINT, COLOR_BG);
+    ILI9341_DispString_EN_CH(AI_UI_CenterX("\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8"), 260, "\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8");
+
+// --- 音量控制区域 ---
+    // 内部填充宽度最大为 118
+    vol_fill_w = (uint16_t)((global_volume / 100.0f) * 118);
+
+    // 绘制“音量：”标签
+    LCD_SetColors(COLOR_AI_TEXT, COLOR_BG);
+    ILI9341_DispString_EN_CH(15, BAR_Y, "\xD2\xF4\xC1\xBF\xA3\xBA"); // 音量：
+
+    // 绘制音量条外框
+    LCD_SetColors(COLOR_FRAME, COLOR_BG);
+    ILI9341_DrawRectangle(BAR_X, BAR_Y, BAR_W, 18, 0); 
+
+    LCD_SetColors(COLOR_HIGHLIGHT, COLOR_HIGHLIGHT);
+    ILI9341_DrawRectangle(BAR_X + 1, BAR_Y + 1, vol_fill_w, 16, 1); 
+    
+    LCD_SetColors(COLOR_PANEL_DARK, COLOR_PANEL_DARK);
+    ILI9341_DrawRectangle(BAR_X + 1 + vol_fill_w, BAR_Y + 1, (BAR_W - 2) - vol_fill_w, 16, 1);
+
+    sprintf(buf, "%3d%%", global_volume);
+    LCD_SetColors(WHITE, COLOR_BG);
+    ILI9341_DispString_EN_CH(190, BAR_Y, buf);
 
     LCD_SetColors(COLOR_HINT, COLOR_BG);
     ILI9341_DispString_EN_CH(AI_UI_CenterX("\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8"), 260, "\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8");

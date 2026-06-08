@@ -222,3 +222,29 @@ static uint8_t Chat_ParseReply(AIChatContext *ctx, char *buf)
     ctx->chat_state->selected_option = 0;
     return 1;
 }
+
+void AI_Chat_SendVolume(uint8_t vol)
+{
+    char vol_buf[16];
+    char num_str[4];
+	int i = 0;
+    
+    if (vol > 100) vol = 100;
+
+    SafeStringCopy(vol_buf, "SET_VOL:", 16);
+
+    
+    if (vol == 100) {
+        num_str[i++] = '1';
+        num_str[i++] = '0';
+        num_str[i++] = '0';
+    } else {
+        if (vol >= 10) num_str[i++] = (vol / 10) + '0';
+        num_str[i++] = (vol % 10) + '0';
+    }
+    num_str[i] = '\0';
+
+    AppendString(vol_buf, num_str, 16);
+    AppendString(vol_buf, "\n", 16);
+    USART1_SendString(vol_buf);
+}

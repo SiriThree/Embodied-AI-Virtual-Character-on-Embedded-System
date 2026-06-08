@@ -24,6 +24,7 @@ static ChatState g_chat_state;
 static AIUIContext AI_UI_BuildContext(void);
 static AIChatContext AI_Chat_BuildContext(void);
 static void UI_Init(void);
+static void VOLUME_Init(void);
 static void UI_DrawCurrentPage(void);
 static void UI_ShowSceneWindow(void);
 static void UI_ShowCoverHintText(const char *text);
@@ -49,9 +50,11 @@ static void AI_HandleGestureEvent(GestureType gesture);
 static void AI_Idle_Reset(void);
 static void AI_Idle_Update(void);
 static void AI_Idle_Feedback(void);
+static void App_HandleEmotionTap(uint16_t x, uint16_t y); //音量控制
 
 void AI_App_Init(void)
 {
+    VOLUME_Init();
     UI_Init();
 }
 
@@ -172,6 +175,12 @@ static void UI_Init(void)
     Chat_ResetForScene();
     ctx = AI_UI_BuildContext();
     AI_UI_Init(&ctx);
+}
+
+static void VOLUME_Init(void)
+{
+    global_volume = 70; 
+    AI_Chat_SendVolume(global_volume);
 }
 
 static void UI_DrawCurrentPage(void)
@@ -295,15 +304,41 @@ static void AI_HandleKeyEvent(KeyEvent key)
             break;
 
         case PAGE_EMOTION:
-            if (key == KEY_EVENT_K2_LONG)
+            switch (key)
             {
-                App_SwitchPage(g_prev_page);
+                case KEY_EVENT_K1_SHORT:
+                    if (global_volume <= 95) {
+                        global_volume += 5;
+                    } else {
+                        global_volume = 100;
+                    }
+                    AI_Chat_SendVolume(global_volume);
+                    UI_DrawCurrentPage();
+                    break;
+
+                case KEY_EVENT_K2_SHORT:
+                    if (global_volume >= 5) {
+                        global_volume -= 5;
+                    } else {
+                        global_volume = 0;
+                    }
+                    AI_Chat_SendVolume(global_volume);
+                    UI_DrawCurrentPage();
+                    break;
+
+                case KEY_EVENT_K2_LONG:
+                    App_SwitchPage(g_prev_page);
+                    break;
+
+                default:
+                    break;
             }
             break;
 
         default:
             break;
-    }
+    
+}
 }
 
 static void AI_HandleGestureEvent(GestureType gesture)
@@ -378,9 +413,13 @@ static void AI_HandleGestureEvent(GestureType gesture)
             break;
 
         case PAGE_EMOTION:
-            if (gesture == GESTURE_SWIPE_UP || gesture == GESTURE_LONG_PRESS)
+            if (gesture == GESTURE_TAP && has_point) 
             {
-                App_SwitchPage(PAGE_COVER);
+                App_HandleEmotionTap(touch_x, touch_y);
+            }
+            else if (gesture == GESTURE_SWIPE_UP || gesture == GESTURE_LONG_PRESS)
+            {
+                App_SwitchPage(g_prev_page);
             }
             break;
 
@@ -584,3 +623,27 @@ static void AI_Idle_Update(void)
         AI_Idle_Feedback();
     }
 }
+
+
+static void App_HandleEmotionTap(uint16_t x, uint16_t y)
+{
+    const uint16_t T_BAR_X = 75;
+    const uint16_t T_BAR_W = 110;
+
+    if (y >= 200 && y <= 245)
+    {
+        if (x >= T_BAR_X && x <= (T_BAR_X + T_BAR_W))
+        {
+            uint8_t calculated_vol = (uint8_t)(((float)(x - T_BAR_X) / T_BAR_W) * 100.0f);
+            
+            if (calculated_vol > 100) calculated_vol = 100;
+
+            if (calculated_vol != global_volume) {
+                global_volume = calculated_vol;
+                AI_Chat_SendVolume(global_volume);
+                UI_DrawCurrentPage();
+            }
+        }
+    }
+}
+
