@@ -18,5 +18,6 @@ typedef struct
 void AI_Chat_ResetForScene(AIChatContext *ctx);
 void AI_Chat_SelectSceneIntro(AIChatContext *ctx);
 void AI_Chat_SendSelectedOption(AIChatContext *ctx);
+void AI_Chat_SendVolume(uint8_t vol);
 
 #endif

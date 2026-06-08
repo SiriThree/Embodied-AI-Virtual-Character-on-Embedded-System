@@ -59,6 +59,21 @@
 #define CHAT_AI_Y_OFFSET         40
 #define CHAT_LINE_STEP           16
 
+// --- 情绪页面音量条布局 ---
+#define EMOTION_VOL_LABEL_X      40
+#define EMOTION_VOL_LABEL_Y      180
+#define EMOTION_VOL_BAR_X        40
+#define EMOTION_VOL_BAR_Y        205
+#define EMOTION_VOL_BAR_W        160
+#define EMOTION_VOL_BAR_H        20
+#define TXT_VOL_LABEL            "\xD2\xF4\xC0\xBF\x20\x3A" 
+// --- 触摸感应区 ---
+#define VOL_TOUCH_X_START    90
+#define VOL_TOUCH_X_END      210
+#define VOL_TOUCH_Y_START    210  
+#define VOL_TOUCH_Y_END      245
+#define VOL_BAR_WIDTH_UI     120
+
 #define TXT_SCENE_SHOPPING       "\xB9\xE4\xBD\xD6\xD4\xBC\xBB\xE1"
 #define TXT_SCENE_SHOPPING_INTRO "\xD2\xBB\xC6\xF0\xC2\xFD\xC2\xFD\xB9\xE4\xBD\xD6\xA3\xAC\xBF\xB4\xBF\xB4\xBD\xF1\xCC\xEC\xCF\xEB\xC2\xF2\xCA\xB2\xC3\xB4\xA1\xA3"
 #define TXT_SCENE_GAMING         "\xD2\xBB\xC6\xF0\xBF\xAA\xBA\xDA"
@@ -160,5 +175,6 @@ extern SceneInfo g_scenes[MAX_SCENE_COUNT];
 extern const uint8_t g_scene_count;
 extern IdleFeedback g_idle_feedbacks[4];
 extern const uint8_t g_idle_feedback_count;
+extern uint8_t global_volume; 
 
 #endif
