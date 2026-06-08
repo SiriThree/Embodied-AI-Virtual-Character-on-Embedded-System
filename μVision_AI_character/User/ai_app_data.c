@@ -29,4 +29,4 @@ IdleFeedback g_idle_feedbacks[4] =
 
 const uint8_t g_idle_feedback_count = 4;
 
-uint8_t global_volume = 70; 
+uint8_t global_volume = 12; 

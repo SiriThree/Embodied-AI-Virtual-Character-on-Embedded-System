@@ -179,7 +179,7 @@ static void UI_Init(void)
 
 static void VOLUME_Init(void)
 {
-    global_volume = 70; 
+    global_volume = 12; 
     AI_Chat_SendVolume(global_volume);
 }
 
@@ -260,6 +260,7 @@ static void AI_HandleKeyEvent(KeyEvent key)
         return;
     }
 
+
     switch (g_page)
     {
         case PAGE_COVER:
@@ -307,21 +308,12 @@ static void AI_HandleKeyEvent(KeyEvent key)
             switch (key)
             {
                 case KEY_EVENT_K1_SHORT:
-                    if (global_volume <= 95) {
-                        global_volume += 5;
-                    } else {
-                        global_volume = 100;
-                    }
+                    if (global_volume < 21) global_volume++; // 最大 21
                     AI_Chat_SendVolume(global_volume);
                     UI_DrawCurrentPage();
                     break;
-
                 case KEY_EVENT_K2_SHORT:
-                    if (global_volume >= 5) {
-                        global_volume -= 5;
-                    } else {
-                        global_volume = 0;
-                    }
+                    if (global_volume > 0) global_volume--;  // 最小 0
                     AI_Chat_SendVolume(global_volume);
                     UI_DrawCurrentPage();
                     break;
@@ -627,22 +619,14 @@ static void AI_Idle_Update(void)
 
 static void App_HandleEmotionTap(uint16_t x, uint16_t y)
 {
-    const uint16_t T_BAR_X = 75;
-    const uint16_t T_BAR_W = 110;
-
-    if (y >= 200 && y <= 245)
-    {
-        if (x >= T_BAR_X && x <= (T_BAR_X + T_BAR_W))
-        {
-            uint8_t calculated_vol = (uint8_t)(((float)(x - T_BAR_X) / T_BAR_W) * 100.0f);
+    if (y >= 200 && y <= 245) {
+        if (x >= 75 && x <= 185) {
+            uint8_t new_vol = (uint8_t)((x - 75) * 21 / 110);
+            if (new_vol > 21) new_vol = 21;
             
-            if (calculated_vol > 100) calculated_vol = 100;
-
-            if (calculated_vol != global_volume) {
-                global_volume = calculated_vol;
-                AI_Chat_SendVolume(global_volume);
-                UI_DrawCurrentPage();
-            }
+            global_volume = new_vol;
+            AI_Chat_SendVolume(global_volume);
+            UI_DrawCurrentPage();
         }
     }
 }

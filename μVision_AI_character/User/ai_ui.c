@@ -519,9 +519,11 @@ static void AI_UI_DrawEmotion(void)
     float p, a;
     FaceID_t face;
     uint16_t vol_fill_w;
+    // 统一定义坐标，方便修改
     const uint16_t BAR_X = 75; 
-    const uint16_t BAR_W = 110;
+    const uint16_t BAR_W = 110; // 总宽度
     const uint16_t BAR_Y = 215;
+    const uint16_t INNER_W = BAR_W - 2; // 内部有效填充宽度 (108像素)
 
     const char *face_names[] = {"\xBF\xAA\xD0\xC4", "\xC2\xFA\xD7\xE3", "\xB7\xC5\xCB\xC9",
                                 "\xBE\xAA\xD1\xC8", "\xC6\xBD\xBE\xB2", "\xCE\xDE\xC1\xC4",
@@ -531,6 +533,7 @@ static void AI_UI_DrawEmotion(void)
     Emotion_GetState(&p, &a);
     face = Emotion_GetFace();
 
+    // --- 1. 基础背景与标题绘制 ---
     LCD_SetColors(COLOR_PANEL, COLOR_BG);
     ILI9341_Clear(0, 0, LCD_X_LENGTH, LCD_Y_LENGTH);
     AI_UI_DrawSoftBackground();
@@ -538,6 +541,7 @@ static void AI_UI_DrawEmotion(void)
     LCD_SetColors(COLOR_TITLE, COLOR_BG);
     ILI9341_DispString_EN_CH(AI_UI_CenterX("\xC7\xE9\xD0\xF7\xD7\xB4\xCC\xAC"), 20, "\xC7\xE9\xD0\xF7\xD7\xB4\xCC\xAC");
 
+    // --- 2. 情绪卡片区域 ---
     AI_UI_DrawCard(20, 60, 200, 140, COLOR_PANEL_DARK, COLOR_FRAME);
 
     LCD_SetColors(COLOR_AI_TEXT, COLOR_PANEL_DARK);
@@ -552,31 +556,40 @@ static void AI_UI_DrawEmotion(void)
     ILI9341_DispString_EN_CH(30, 130, "\xB1\xED\xC7\xE9\xA3\xBA");
     sprintf(buf, "%s", face_names[face]);
     ILI9341_DispString_EN_CH(100, 130, buf);
-    LCD_SetColors(COLOR_HINT, COLOR_BG);
-    ILI9341_DispString_EN_CH(AI_UI_CenterX("\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8"), 260, "\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8");
 
-// --- 音量控制区域 ---
-    // 内部填充宽度最大为 118
-    vol_fill_w = (uint16_t)((global_volume / 100.0f) * 118);
+    // --- 3. 音量控制区域 (核心修改点) ---
+    
+    // 计算填充宽度：(当前音量 / 最大音量21) * 内部总宽度
+    // 使用整数运算防止浮点数导致的溢出： (vol * 108) / 21
+    vol_fill_w = (uint16_t)((global_volume * INNER_W) / 21);
+    if (vol_fill_w > INNER_W) vol_fill_w = INNER_W;
 
     // 绘制“音量：”标签
     LCD_SetColors(COLOR_AI_TEXT, COLOR_BG);
-    ILI9341_DispString_EN_CH(15, BAR_Y, "\xD2\xF4\xC1\xBF\xA3\xBA"); // 音量：
+    ILI9341_DispString_EN_CH(15, BAR_Y, "\xD2\xF4\xC1\xBF\xA3\xBA"); 
 
     // 绘制音量条外框
     LCD_SetColors(COLOR_FRAME, COLOR_BG);
     ILI9341_DrawRectangle(BAR_X, BAR_Y, BAR_W, 18, 0); 
 
+    // 填充已选部分 (高亮色)
     LCD_SetColors(COLOR_HIGHLIGHT, COLOR_HIGHLIGHT);
-    ILI9341_DrawRectangle(BAR_X + 1, BAR_Y + 1, vol_fill_w, 16, 1); 
+    if (vol_fill_w > 0) {
+        ILI9341_DrawRectangle(BAR_X + 1, BAR_Y + 1, vol_fill_w, 16, 1); 
+    }
     
+    // 填充未选部分 (背景色)
     LCD_SetColors(COLOR_PANEL_DARK, COLOR_PANEL_DARK);
-    ILI9341_DrawRectangle(BAR_X + 1 + vol_fill_w, BAR_Y + 1, (BAR_W - 2) - vol_fill_w, 16, 1);
+    if (vol_fill_w < INNER_W) {
+        ILI9341_DrawRectangle(BAR_X + 1 + vol_fill_w, BAR_Y + 1, INNER_W - vol_fill_w, 16, 1);
+    }
 
-    sprintf(buf, "%3d%%", global_volume);
+
+    sprintf(buf, "%3d%%", (int)(global_volume * 100 / 21));
     LCD_SetColors(WHITE, COLOR_BG);
     ILI9341_DispString_EN_CH(190, BAR_Y, buf);
 
+    
     LCD_SetColors(COLOR_HINT, COLOR_BG);
     ILI9341_DispString_EN_CH(AI_UI_CenterX("\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8"), 260, "\xB3\xA4\xB0\xB4K2/\xC9\xcf\xBB\xAE\xB7\xB5\xBB\xD8");
 }
