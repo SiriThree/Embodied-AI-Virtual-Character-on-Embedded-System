@@ -298,6 +298,7 @@ static void AI_HandleKeyEvent(KeyEvent key)
                     break;
                 case KEY_EVENT_K2_LONG:
                     App_SwitchPage(PAGE_SCENE_SELECT);
+                    AI_Chat_SendAudioStop();
                     break;
                 default:
                     break;
@@ -435,6 +436,9 @@ static void App_SwitchPage(AppPage page)
         {
             g_scene_scroll = g_scene_index;
         }
+    }
+    if (g_page == PAGE_CHAT && page != PAGE_CHAT) {
+        AI_Chat_SendAudioStop();
     }
 
     UI_DrawCurrentPage();

@@ -248,3 +248,8 @@ void AI_Chat_SendVolume(uint8_t vol)
     AppendString(vol_buf, "\n", 16);
     USART1_SendString(vol_buf);
 }
+
+void AI_Chat_SendAudioStop(void)
+{
+    USART1_SendString("AUDIO_STOP\n");
+}

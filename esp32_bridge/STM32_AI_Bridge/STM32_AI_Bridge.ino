@@ -358,10 +358,8 @@ void loop() {
     return;
   }
 
-  if (frame == "AUDIO_STOP") {
+  if (frame.startsWith("SCENE:") || frame == "AUDIO_STOP") {
       audio.stopSong();
-      Serial.println("[bridge] Audio Force Stopped.");
-      return; 
     }
 
   handleFrame(frame);
