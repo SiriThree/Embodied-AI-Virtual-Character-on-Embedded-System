@@ -7,6 +7,18 @@
 static void Chat_BuildMockReply(AIChatContext *ctx, const char *user_choice);
 static uint8_t Chat_ParseReply(AIChatContext *ctx, char *buf);
 
+#define TXT_MOCK_REPLY_SHOP      "\xB9\xFE\xBB\xF9\xC3\xD7\xA1\xAB\xC2\xFD\xC2\xFD\xB9\xE4\xD1\xBD\xA1\xA3"
+#define TXT_MOCK_REPLY_GAME      "\xC2\xFC\xB2\xA8\xC2\xFC\xB2\xA8\xA1\xAB\xB1\xF0\xBC\xB1\xD1\xBD\xA1\xA3"
+#define TXT_MOCK_REPLY_NIGHT     "\xCC\xF0\xCC\xF0\xB5\xC4\xA3\xAC\xC2\xFD\xC2\xFD\xCB\xB5\xD1\xBD\xA1\xA3"
+#define TXT_MOCK_REPLY_GEN       "\xB9\xFE\xBB\xF9\xC3\xD7\xA1\xAB\xBC\xCC\xD0\xF8\xC5\xE3\xC4\xE3\xA1\xA3"
+
+#define TXT_MOCK_OPT_NEAR        "\xD4\xD9\xBF\xBF\xBD\xFC\xD2\xBB\xB5\xE3"
+#define TXT_MOCK_OPT_MAMBO       "\xC2\xFC\xB2\xA8\xD2\xA1\xD2\xBB\xCF\xC2"
+#define TXT_MOCK_OPT_SWEET       "\xBB\xBB\xB8\xF6\xCC\xF0\xCC\xF0\xBB\xB0\xCC\xE2"
+#define TXT_MOCK_OPT_LISTEN      "\xC8\xC3\xCE\xD2\xC2\xFD\xC2\xFD\xCC\xFD"
+#define TXT_MOCK_OPT_CHAT        "\xD2\xBB\xC6\xF0\xC7\xE1\xC7\xE1\xC1\xC4"
+#define TXT_MOCK_OPT_MORE        "\xD4\xD9\xB8\xF8\xCE\xD2\xD2\xBB\xBE\xE4"
+
 void AI_Chat_ResetForScene(AIChatContext *ctx)
 {
     ctx->chat_state->round = 0;
@@ -105,31 +117,35 @@ static void Chat_BuildMockReply(AIChatContext *ctx, const char *user_choice)
 
     if (strcmp(ctx->scenes[ctx->scene_index].topic_key, "shopping") == 0)
     {
-        AppendString(ctx->chat_state->ai_text, TXT_SHOP_REPLY, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[0], TXT_SHOP_OPT_1, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[1], TXT_SHOP_OPT_2, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[2], TXT_SHOP_OPT_3, MAX_TEXT_LEN);
+        ctx->scenes[ctx->scene_index].avatar = AVATAR_HAPPY;
+        AppendString(ctx->chat_state->ai_text, TXT_MOCK_REPLY_SHOP, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[0], TXT_MOCK_OPT_NEAR, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[1], TXT_MOCK_OPT_MAMBO, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[2], TXT_MOCK_OPT_SWEET, MAX_TEXT_LEN);
     }
     else if (strcmp(ctx->scenes[ctx->scene_index].topic_key, "gaming") == 0)
     {
-        AppendString(ctx->chat_state->ai_text, TXT_GAME_REPLY, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[0], TXT_GAME_OPT_1, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[1], TXT_GAME_OPT_2, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[2], TXT_GAME_OPT_3, MAX_TEXT_LEN);
+        ctx->scenes[ctx->scene_index].avatar = AVATAR_CURIOUS;
+        AppendString(ctx->chat_state->ai_text, TXT_MOCK_REPLY_GAME, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[0], TXT_MOCK_OPT_LISTEN, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[1], TXT_MOCK_OPT_MAMBO, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[2], TXT_MOCK_OPT_MORE, MAX_TEXT_LEN);
     }
     else if (strcmp(ctx->scenes[ctx->scene_index].topic_key, "night") == 0)
     {
-        AppendString(ctx->chat_state->ai_text, TXT_NIGHT_REPLY, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[0], TXT_NIGHT_OPT_1, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[1], TXT_NIGHT_OPT_2, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[2], TXT_NIGHT_OPT_3, MAX_TEXT_LEN);
+        ctx->scenes[ctx->scene_index].avatar = AVATAR_GENTLE;
+        AppendString(ctx->chat_state->ai_text, TXT_MOCK_REPLY_NIGHT, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[0], TXT_MOCK_OPT_CHAT, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[1], TXT_MOCK_OPT_LISTEN, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[2], TXT_MOCK_OPT_MORE, MAX_TEXT_LEN);
     }
     else
     {
-        AppendString(ctx->chat_state->ai_text, TXT_GEN_REPLY, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[0], TXT_GEN_OPT_1, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[1], TXT_GEN_OPT_2, MAX_TEXT_LEN);
-        SafeStringCopy(ctx->chat_state->options[2], TXT_GEN_OPT_3, MAX_TEXT_LEN);
+        ctx->scenes[ctx->scene_index].avatar = AVATAR_CURIOUS;
+        AppendString(ctx->chat_state->ai_text, TXT_MOCK_REPLY_GEN, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[0], TXT_MOCK_OPT_NEAR, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[1], TXT_MOCK_OPT_CHAT, MAX_TEXT_LEN);
+        SafeStringCopy(ctx->chat_state->options[2], TXT_MOCK_OPT_SWEET, MAX_TEXT_LEN);
     }
 
     if (user_choice[0] != '\0')
