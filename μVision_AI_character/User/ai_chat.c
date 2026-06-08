@@ -175,6 +175,14 @@ static uint8_t Chat_ParseReply(AIChatContext *ctx, char *buf)
     opt3 = strstr(buf, "OPT3=");
     avatar = strstr(buf, "AVATAR=");
 
+    if (text != 0) {
+        // 计算文本长度（字节数）
+        uint16_t text_len = strlen(text);
+
+        g_led_breathing_timer = text_len * 250; 
+        
+    }
+
     if (text == 0 || opt1 == 0)
     {
         return 0;
@@ -268,4 +276,6 @@ void AI_Chat_SendVolume(uint8_t vol)
 void AI_Chat_SendAudioStop(void)
 {
     USART1_SendString("AUDIO_STOP\n");
+    g_led_breathing_timer = 0; // 同时停止灯光
+    LED_RGB_Off();
 }

@@ -176,5 +176,7 @@ extern const uint8_t g_scene_count;
 extern IdleFeedback g_idle_feedbacks[4];
 extern const uint8_t g_idle_feedback_count;
 extern uint8_t global_volume; 
+extern uint8_t g_is_audio_playing;
+extern uint32_t g_led_breathing_timer;
 
 #endif

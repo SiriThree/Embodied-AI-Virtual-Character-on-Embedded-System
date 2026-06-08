@@ -70,6 +70,16 @@ void AI_App_Run(void)
         key = KeyInput_Update();
         gesture = Gesture_Update();
 
+        if (g_led_breathing_timer > 0) 
+        {
+            g_led_breathing_timer--; // 每个循环减 1
+            LED_RGB_BreathingHandler(1); 
+        }
+        else 
+        {
+            LED_RGB_BreathingHandler(0); // 停止呼吸并熄灭
+        }
+
         if (key != KEY_EVENT_NONE)
         {
             has_input = 1;
@@ -439,6 +449,8 @@ static void App_SwitchPage(AppPage page)
     }
     if (g_page == PAGE_CHAT && page != PAGE_CHAT) {
         AI_Chat_SendAudioStop();
+        g_led_breathing_timer = 0;
+        LED_RGB_Off();             // 强制熄灭
     }
 
     UI_DrawCurrentPage();

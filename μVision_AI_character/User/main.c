@@ -9,6 +9,7 @@
 #include "ai_app_utils.h"
 #include "ai_app.h"
 #include "emotion.h"
+#include "./led/bsp_led_rgb.h"
 
 static void System_Init_All(void);
 
@@ -30,7 +31,8 @@ static void System_Init_All(void)
 
     XPT2046_Init();
     Calibrate_or_Get_TouchParaWithFlash(6, 0);
-
+    LED_RGB_Init();
+    
     Gesture_Init();
     KeyInput_Init();
     Emotion_Init();
