@@ -6,7 +6,7 @@
 // Update these values before flashing the ESP32.
 static const char *WIFI_SSID = "test";
 static const char *WIFI_PASS = "12345678";
-static const char *API_BASE_URL = "http://192.168.24.231:8000";
+static const char *API_BASE_URL = "http://192.168.161.231:8000";
 static const char *API_PATH = "/scene_story_serial";
 
 // UART2 <-> STM32
@@ -346,6 +346,23 @@ void loop() {
   if (frame.length() == 0) {
     return;
   }
+
+  if (frame.startsWith("SET_VOL:")) {
+    int vol = frame.substring(8).toInt();
+    if (vol < 0) vol = 0;
+    if (vol > 21) vol = 21;
+
+    audio.setVolume(vol);
+    
+    Serial.printf("[bridge] Volume set to: %d\n", vol);
+    return;
+  }
+
+  if (frame == "AUDIO_STOP") {
+      audio.stopSong();
+      Serial.println("[bridge] Audio Force Stopped.");
+      return; 
+    }
 
   handleFrame(frame);
 }
