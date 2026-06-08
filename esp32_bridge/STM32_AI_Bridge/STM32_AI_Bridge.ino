@@ -6,7 +6,7 @@
 // Update these values before flashing the ESP32.
 static const char *WIFI_SSID = "test";
 static const char *WIFI_PASS = "12345678";
-static const char *API_BASE_URL = "http://192.168.24.231:8000";
+static const char *API_BASE_URL = "http://192.168.223.231:8000";
 static const char *API_PATH = "/scene_story_serial";
 
 // UART2 <-> STM32
