@@ -1,4 +1,6 @@
 #include "bsp_led_rgb.h"
+#include "../emotion.h"
+#include "../ai_app_data.h"
 
 /**
  * @brief  初始化 TIM3 PWM 模式用于驱动 RGB LED
@@ -58,63 +60,68 @@ void LED_RGB_Off(void)
 }
 
 
-/**
- * @brief  平滑退出版呼吸灯处理函数
- * @param  is_playing: 外部逻辑信号 (1:开始/持续呼吸, 0:停止)
- */
 void LED_RGB_BreathingHandler(uint8_t is_playing)
 {
-    // 参数配置
-    #define BREATH_SPEED   1000  // 呼吸速度 (你之前测试的1000比较好)
-    #define PEAK_VAL       255   // 呼吸的顶峰值
-    #define CYCLE_STEPS    (PEAK_VAL * 2) // 总步数 (0->255->0 为 510 步)
+    // --- 参数配置 ---
+    #define BREATH_SPEED    (g_led_speed)
+    #define PEAK_VAL       255   
+    #define CYCLE_STEPS    (PEAK_VAL * 2) 
 
     static uint32_t speed_counter = 0;
     static uint16_t local_tick = 0; 
-    static uint8_t  force_running = 0; // 内部状态锁
+    static uint8_t  force_running = 0; 
+    
     uint16_t linear_val;
-    uint32_t brightness;
+    uint32_t brightness_factor; 
+    
+    uint8_t base_r = 0, base_g = 0, base_b = 0;
+    uint8_t out_r;
+    uint8_t out_g;
+    uint8_t out_b;
 
-    // 状态机逻辑：
-    // 只要外部想让它亮，或者灯还没熄灭到 0，就强制继续运行
-    if (is_playing) {
-        force_running = 1;
-    }
-
+    if (is_playing) force_running = 1;
     if (force_running == 0) {
         LED_RGB_Off();
         return;
     }
 
-    // 速度控制
     speed_counter++;
     if (speed_counter < BREATH_SPEED) return;
     speed_counter = 0;
 
-    // 计算线性亮度进度 (0 -> 255 -> 0)
-    if (local_tick < PEAK_VAL) {
-        linear_val = local_tick;           // 上坡阶段
-    } else {
-        linear_val = CYCLE_STEPS - local_tick; // 下坡阶段
+    switch (Emotion_GetFace()) {
+        case FACE_HAPPY:     base_r = 255; base_g = 200; base_b = 0;   break;
+        case FACE_CONTENT:   base_r = 50;  base_g = 255; base_b = 50;  break;
+        case FACE_RELAXED:   base_r = 0;   base_g = 200; base_b = 200; break;
+        case FACE_SURPRISED: base_r = 255; base_g = 255; base_b = 255; break;
+        case FACE_NEUTRAL:   base_r = 100; base_g = 100; base_b = 100; break;
+        case FACE_BORED:     base_r = 60;  base_g = 60;  base_b = 80;  break;
+        case FACE_ANGRY:     base_r = 255; base_g = 0;   base_b = 0;   break;
+        case FACE_SAD:       base_r = 0;   base_g = 0;   base_b = 255; break;
+        case FACE_DEPRESSED: base_r = 40;  base_g = 0;   base_b = 80;  break;
+        case FACE_THINKING:  base_r = 255; base_g = 150; base_b = 0;   break;
+        default:             base_r = 0;   base_g = 0;   base_b = 0;   break;
     }
 
-    // --- 核心优化：平方律映射 (指数级平滑) ---
-    // 这个公式保证了亮度在接近 0 的时候变化非常细腻，不会产生“陡峭”感
-    // 分母 65025 是 255*255 的结果
-    brightness = (uint32_t)linear_val * linear_val * RGB_MAX_BRIGHTNESS / 65025;
-    
-    LED_RGB_SetColor(0, (uint8_t)brightness, (uint8_t)brightness);
+    if (local_tick < PEAK_VAL) {
+        linear_val = local_tick;           
+    } else {
+        linear_val = CYCLE_STEPS - local_tick; 
+    }
 
-    // 更新进度
+    brightness_factor = (uint32_t)linear_val * linear_val * RGB_MAX_BRIGHTNESS / 65025;
+
+    out_r = (uint16_t)(base_r * brightness_factor / RGB_MAX_BRIGHTNESS);
+    out_g = (uint16_t)(base_g * brightness_factor / RGB_MAX_BRIGHTNESS);
+    out_b = (uint16_t)(base_b * brightness_factor / RGB_MAX_BRIGHTNESS);
+
+    LED_RGB_SetColor(out_r, out_g, out_b);
+
     local_tick++;
-
-    // 检查是否走完了一个完整的周期 (0 -> Max -> 0)
     if (local_tick >= CYCLE_STEPS) {
         local_tick = 0;
-        
-        // 关键点：当一个完整周期结束时，检查外部是否还要求继续呼吸
         if (!is_playing) {
-            force_running = 0; // 只有在终点且外部不要求播放时，才真正关闭
+            force_running = 0; 
         }
     }
 }

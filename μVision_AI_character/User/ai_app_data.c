@@ -32,3 +32,4 @@ const uint8_t g_idle_feedback_count = 4;
 uint8_t global_volume = 12; 
 uint8_t g_is_audio_playing = 0; 
 uint32_t g_led_breathing_timer = 0;
+uint8_t g_led_speed = 500;

@@ -10,6 +10,7 @@ load_dotenv()
 AUDIO_DIR = "./audio"
 FISH_AUDIO_API_KEY = os.getenv("FISH_AUDIO_API_KEY") 
 FISH_AUDIO_URL = "https://api.fish.audio/v1/tts"
+FISH_URL  = os.getenv("FISH_URL") 
 
 # 情感与模型 ID 的映射表
 EMOTION_MODEL_MAP = {
@@ -110,7 +111,7 @@ async def text_to_speech(text: str, emotion: str = "gentle") -> tuple:
 
     return None, None
 
-def get_audio_url(audio_file: str, base_url: str = "http://192.168.24.231:8000") -> str:
+def get_audio_url(audio_file: str, base_url: str = FISH_URL) -> str:
     """生成音频的访问 URL"""
     if not audio_file:
         return ""

@@ -55,6 +55,7 @@ void AI_UI_DrawCurrentPage(const AIUIContext *ctx)
 
         case PAGE_CHAT:
             AI_UI_DrawChat(ctx);
+            
             break;
 
         case PAGE_EMOTION:

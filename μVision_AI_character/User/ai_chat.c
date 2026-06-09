@@ -99,11 +99,15 @@ void AI_Chat_SendSelectedOption(AIChatContext *ctx)
     AppendString(send_buf, "\n", MAX_PROTOCOL_BUF);
 
     USART1_ClearRxBuffer();
+    g_led_breathing_timer = 0;
     USART1_SendString(send_buf);
 
     if (!USART1_ReadLine(send_buf, sizeof(send_buf), CHAT_REPLY_TIMEOUT) || !Chat_ParseReply(ctx, send_buf))
     {
         Chat_BuildMockReply(ctx, user_choice);
+        LED_RGB_SetColor(255,0,0);
+        g_led_speed = 500;
+        g_led_breathing_timer = 100000;
     }
 
     ctx->ui_set_avatar(Emotion_GetFace());
@@ -117,13 +121,7 @@ static void Chat_BuildMockReply(AIChatContext *ctx, const char *user_choice)
 
     if (strcmp(ctx->scenes[ctx->scene_index].topic_key, "shopping") == 0)
     {
-        //ctx->scenes[ctx->scene_index].avatar = AVATAR_HAPPY;
-        if (1) {
-
-        g_led_breathing_timer = 100000; 
-        }
-        
-    
+        //ctx->scenes[ctx->scene_index].avatar = AVATAR_HAPPY;      
         AppendString(ctx->chat_state->ai_text, TXT_MOCK_REPLY_SHOP, MAX_TEXT_LEN);
         SafeStringCopy(ctx->chat_state->options[0], TXT_MOCK_OPT_NEAR, MAX_TEXT_LEN);
         SafeStringCopy(ctx->chat_state->options[1], TXT_MOCK_OPT_MAMBO, MAX_TEXT_LEN);
@@ -181,11 +179,13 @@ static uint8_t Chat_ParseReply(AIChatContext *ctx, char *buf)
     opt3 = strstr(buf, "OPT3=");
     avatar = strstr(buf, "AVATAR=");
 
+    //呼吸长度
     if (text != 0) {
         // 计算文本长度（字节数）
         uint16_t text_len = strlen(text);
 
-        g_led_breathing_timer = text_len * 250; 
+        g_led_speed = 500;
+        g_led_breathing_timer = text_len * 100000; 
         
     }
 
