@@ -1,102 +1,101 @@
-# STM32 嵌入式 AI 虚拟角色系统
+# 基于 STM32 + ESP32 + 云端大模型的嵌入式 AI 虚拟角色系统
 
-这是一个基于 `STM32F103VET6` 野火开发板的嵌入式 AI 虚拟角色项目。  
-项目目标是在小尺寸触摸屏上实现一个具有“角色感、互动感、陪伴感”的 AI 伙伴系统。
+这是一个运行在 `STM32F103VET6` 平台上的嵌入式 AI 虚拟角色项目。系统以 STM32 作为前端交互核心，结合 ESP32 的联网与音频播放能力，以及 FastAPI + 大语言模型 + TTS 的云端服务，实现了一个支持场景选择、多轮对话、语音回复和情绪联动的 AI 角色系统。
 
-当前仓库包含三部分：
+当前版本已经完成以下主链路：
 
-- `STM32` 端：封面页、场景选择页、对话页、按键/触摸交互、头像与文本显示
-- `ESP32` 端：负责串口桥接，把 STM32 请求转发给后端；连接扬声器播放交互语音
-- `FastAPI + LLM + TTS` 后端：负责动态生成 AI 回复、用户选项和情绪状态、ai语音mp3回复
-
-当前版本已经整理成可直接在 `Keil μVision` 中编译的模块化工程。
+- STM32 端封面页、场景选择页、对话页、情绪页
+- 按键和触摸双输入方式
+- STM32 与 ESP32 串口通信
+- ESP32 请求 FastAPI 后端并转发回复
+- LLM 动态生成回复、候选选项和情绪标签
+- TTS 生成语音并由 ESP32 播放
+- 本地兜底逻辑，后端异常时仍可演示
 
 ---
 
-## 一、项目目录结构
+## 1. 项目结构
 
 ```text
 STM32_AI_Character/
 ├─ μVision_AI_character/                  # STM32 固件工程
 │  ├─ Project/RVMDK（uv5）/BH-F103.uvprojx
-│  └─ User/
-│     ├─ main.c                           # 最小入口，仅保留启动与初始化
-│     ├─ ai_app.c / ai_app.h              # 页面状态机、输入分发、待机逻辑
-│     ├─ ai_ui.c / ai_ui.h                # 三个页面的 UI 绘制
-│     ├─ ai_chat.c / ai_chat.h            # 串口协议、回包解析、mock 逻辑
-│     ├─ ai_app_data.c / ai_app_data.h    # 场景数据、文案、布局常量
-│     └─ ai_app_utils.c / ai_app_utils.h  # 文本裁切、换行、串口辅助函数
+│  ├─ User/
+│  │  ├─ main.c                           # 启动入口与硬件初始化
+│  │  ├─ ai_app.c / ai_app.h              # 页面状态机、输入处理、待机逻辑
+│  │  ├─ ai_ui.c / ai_ui.h                # 封面/场景/对话/情绪页绘制
+│  │  ├─ ai_chat.c / ai_chat.h            # 串口协议、回包解析、本地兜底
+│  │  ├─ ai_app_data.c / ai_app_data.h    # 场景数据、文案、颜色与布局常量
+│  │  ├─ ai_app_utils.c / ai_app_utils.h  # 文本处理、串口辅助函数
+│  │  ├─ emotion.c / emotion.h            # 情绪系统
+│  │  └─ ai_avatars_new.c / ai_avatars_new.h
+│  └─ Libraries/                          # CMSIS 与固件库
 ├─ esp32_bridge/
 │  └─ STM32_AI_Bridge/
-│     └─ STM32_AI_Bridge.ino              # ESP32 串口桥接程序
-├─ docs/
-│  └─ v3_modules_requirements.md          # 后续模块需求文档
-├─ main.py                                # FastAPI 后端入口
-├─ ai_partner_memory.db                   # 本地记忆数据库
-|─ text_to_speech.py                      # Text to Speech
-|-audio/                                  # 挂载mp3静态文件
-└─ README.md
+│     └─ STM32_AI_Bridge.ino              # ESP32 串口桥接与语音播放
+├─ audio/                                 # 后端生成的音频文件目录
+├─ docs/                                  # 需求与文档资料
+├─ facial/                                # 头像与表情素材及生成脚本
+├─ main.py                                # FastAPI 后端主程序
+├─ manbo_speech.py                        # Fish Audio 语音生成
+├─ text_to_speech.py                      # 备用/历史语音脚本
+├─ ai_partner_memory.db                   # 本地数据库
+├─ requirements.txt                       # Python 依赖
+└─ .env.example                           # 环境变量模板
 ```
 
 ---
 
-## 二、STM32 工程编译说明
+## 2. 系统架构
 
-### 1. 开发环境
+当前系统采用三层结构：
 
-- `Keil MDK-ARM / μVision5`
-- `ARM Compiler 5`
+1. `STM32`
+   负责屏幕显示、按键/触摸交互、页面切换、选项选择和本地兜底显示。
 
-当前验证通过的编译器版本：
+2. `ESP32`
+   负责串口桥接、Wi-Fi 联网、访问后端接口、接收语音资源并通过 I2S 播放。
 
-- `V5.06 update 6 (build 750)`
+3. `FastAPI + LLM + TTS`
+   负责生成场景化回复、三条用户选项、情绪标签和语音资源。
 
-### 2. 工程位置
-
-请在 `μVision` 中打开：
+数据流如下：
 
 ```text
-μVision_AI_character/Project/RVMDK（uv5）/BH-F103.uvprojx
+用户输入 -> STM32 -> ESP32 -> FastAPI -> LLM/TTS
+                                  |
+                                  v
+                           回复/选项/情绪/语音
+                                  |
+                                  v
+                         ESP32 回传 STM32 并播放语音
 ```
-
-工程关键信息：
-
-- Target：`LDC`
-- Device：`STM32F103VE`
-- Output：`Template`
-
-### 3. 编译步骤
-
-1. 打开 `BH-F103.uvprojx`
-2. 确认当前 Target 为 `LDC`
-3. 点击 `Rebuild`
-
-当前工程文件已经包含拆分后的新模块，不需要手动再往工程里加文件。
 
 ---
 
-## 三、STM32 端当前功能
+## 3. STM32 端功能
 
-### 1. 页面流程
+### 3.1 页面流程
 
-系统当前流程为：
+当前主流程为：
 
 1. 封面页
-2. 场景/话题选择页
-3. 多轮对话页
+2. 场景选择页
+3. 对话页
+4. 情绪页
 
-### 2. 交互方式
+### 3.2 输入方式
 
-- `K1 短按`：切换场景或切换选项
-- `K1 长按`：反向切换
-- `K2 短按`：确认当前选择
-- `K2 长按`：返回上一页
-- 触摸点击：选择场景或选择选项
-- 触摸滑动：场景翻动或页面切换
+- `K1 短按`：切换场景或切换当前选项
+- `K1 长按`：打开/关闭情绪页
+- `K2 短按`：确认场景或确认选项
+- `K2 长按`：返回上一级
+- 触摸点击：选择场景、点击选项、调整音量
+- 手势滑动：辅助切换或触发交互事件
 
-### 3. 当前内置场景
+### 3.3 当前内置场景
 
-当前已内置多个场景，例如：
+当前工程内置 12 个场景：
 
 - 逛街约会
 - 一起开黑
@@ -108,316 +107,289 @@ STM32_AI_Character/
 - 一起吃饭
 - 电影时间
 - 音乐分享
-- 考试前夕
+- 考前陪伴
 - 休息陪伴
 
-### 4. 本地兜底逻辑
+### 3.4 情绪系统
 
-如果 STM32 没有接上 ESP32，或者后端没有连通，系统仍然可以使用本地 mock 回复进行演示，不会卡死。
+情绪模块位于 [emotion.c](D:/2025-2026-2/FPGA/CubeIDE/STM32_AI_Character/μVision_AI_character/User/emotion.c)，使用基于 `Pleasure-Arousal` 的轻量情绪模型，支持：
 
----
+- 点击、长按、滑动等事件注入
+- 待机时情绪自然衰减
+- 映射到不同表情状态
+- 在情绪页显示当前状态和音量
 
-## 四、STM32 模块职责说明
+### 3.5 本地兜底
 
-### `main.c`
-
-只保留两类职责：
-
-- `main()`
-- 硬件初始化入口
-
-### `ai_app.c`
-
-负责：
-
-- 页面状态机
-- 按键与触摸输入分发
-- 场景切换
-- 对话选项切换
-- 待机反馈逻辑
-
-### `ai_ui.c`
-
-负责：
-
-- 封面页绘制
-- 场景页绘制
-- 对话页绘制
-- 头像缩放显示
-- 对话文本与选项显示
-
-### `ai_chat.c`
-
-负责：
-
-- 进入场景后的首轮请求
-- 选项发送
-- 串口回包解析
-- 本地 mock 回复
-- avatar 状态解析
-
-### `ai_app_data.c`
-
-负责：
-
-- 场景表
-- UI 中文文案
-- 待机提示文案
-- 布局与颜色常量
-
-### `ai_app_utils.c`
-
-负责：
-
-- 文本按像素宽度裁切
-- 自动换行
-- 省略号处理
-- 字符串拼接
-- 串口收发辅助
+如果 ESP32 未连接，或后端未返回有效数据，STM32 会自动退回本地 mock 回复，不会卡死在等待状态。这一机制对现场演示很重要。
 
 ---
 
-## 五、ESP32 串口桥接说明
+## 4. ESP32 串口桥接
 
-桥接文件：
+桥接程序位于：
 
-```text
-esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino
-```
+[STM32_AI_Bridge.ino](D:/2025-2026-2/FPGA/CubeIDE/STM32_AI_Character/esp32_bridge/STM32_AI_Bridge/STM32_AI_Bridge.ino)
 
-### 1. 作用
+### 4.1 主要职责
 
-ESP32 负责接收 STM32 发来的串口请求，访问 FastAPI 后端，再把结果通过串口发回 STM32。
+- 接收 STM32 串口请求
+- 解析场景与选项索引
+- 调用 FastAPI `/scene_story_serial`
+- 将回复、选项、情绪转发给 STM32
+- 播放语音音频
+- 接收 STM32 发来的音量调整命令
 
-### 2. 串口协议
+### 4.2 当前协议
 
 STM32 -> ESP32：
 
 ```text
 SCENE:shopping
-SCENE:shopping|IDX:0
-SCENE:gaming|IDX:2
+SCENE:gaming|IDX:1
+SET_VOL:70
 ```
 
 ESP32 -> STM32：
 
 ```text
-TEXT=...|OPT1=...|OPT2=...|OPT3=...|AVATAR=happy
+TEXT=...|OPT1=...|OPT2=...|OPT3=...|AVATAR=happy|AUDIO=http://...
 ```
 
-### 3. 烧录前需要确认的配置
+### 4.3 当前默认硬件配置
 
-请检查 `.ino` 中以下内容：
+UART2：
 
-- `WIFI_SSID`
-- `WIFI_PASS`
-- `API_BASE_URL`
-- `API_PATH`
+- `GPIO16` -> RX
+- `GPIO17` -> TX
+- `115200` 波特率
 
-### 4. 推荐接线
+I2S 音频输出：
 
-当前 STM32 工程使用 `USART2`：
+- `BCLK = 26`
+- `LRC = 25`
+- `DOUT = 22`
 
-- `STM32 PA2 = TX`
-- `STM32 PA3 = RX`
+### 4.4 烧录前必须修改
 
-ESP32 桥接默认使用：
+在 `.ino` 中至少确认这几项：
 
-- `GPIO16 = RX`
-- `GPIO17 = TX`
-
-连接方式：
-
-- `ESP32 GPIO17 (TX) -> STM32 PA3 (RX)`
-- `ESP32 GPIO16 (RX) -> STM32 PA2 (TX)`
-- `GND -> GND`
-
-
-
-### 5. 串口监视器
-
-波特率：
-
-```text
-115200
+```cpp
+static const char *WIFI_SSID = "test";
+static const char *WIFI_PASS = "12345678";
+static const char *API_BASE_URL = "http://192.168.24.6:8000";
+static const char *API_PATH = "/scene_story_serial";
 ```
 
-正常启动后应看到类似日志：
+其中：
 
-```text
-[bridge] boot
-[bridge] uart2 baud=115200
-[bridge] api=http://你的电脑IP:8000/scene_story_serial
-[bridge] connecting wifi...
-[bridge] wifi ok, ip=...
-```
+- `WIFI_SSID` 和 `WIFI_PASS` 需要改成你当前 Wi-Fi
+- `API_BASE_URL` 需要改成运行 FastAPI 的电脑当前局域网 IP
 
-### 6. 语音模块
-
-语音模块接线：
-- 'LRC-->25' 
-- 'BCLK-->26'
-- 'DIN-->22'
-- 'GND-->GND'
-- 'VIN-->3V3'
-
-注意事项：
-- 安装ESP32-audioI2S-master(3.0.13版本及以前)
-- tool选项卡partition scheme选择"HUGE APP"以获得充足内存
 ---
 
-## 六、FastAPI 后端说明
+## 5. 后端说明
 
 后端入口文件：
 
-```text
-main.py
-```
+[main.py](D:/2025-2026-2/FPGA/CubeIDE/STM32_AI_Character/main.py)
 
-### 1. Python 环境
+### 5.1 当前后端能力
 
-推荐：
+- 场景化对话生成
+- 多轮上下文对话
+- 候选选项生成
+- GBK 十六进制编码输出
+- 语音生成与音频 URL 返回
+- SQLite 本地用户记忆与画像存储
 
-- `Python 3.10+`
+### 5.2 主要接口
 
-### 2. 安装依赖
+- `GET /`
+- `GET /health`
+- `GET /memories`
+- `GET /profile`
+- `POST /scene`
+- `POST /scene_serial`
+- `POST /scene_story_serial`
+- `POST /chat`
+- `POST /reset`
 
-仓库现在已经补充了 `requirements.txt`，可直接执行：
+其中，ESP32 当前主要访问：
 
-```bash
-pip install -r requirements.txt
-```
+- `POST /scene_story_serial`
 
-### 3. 环境变量
+### 5.3 环境变量
 
-先复制：
+请先复制：
 
 ```text
 .env.example -> .env
 ```
 
-然后在 `.env` 中填写：
+然后至少配置：
 
 ```text
 DEEPSEEK_API_KEY=你的密钥
+FISH_AUDIO_API_KEY=你的密钥
 ```
 
-### 4. 启动方式
+### 5.4 启动方式
 
 在仓库根目录运行：
 
-```bashuvicorn main:app --host 0.0.0.0 --port 8000
-
+```bash
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-启动后可访问：
+本机测试：
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-### 5. 当前主要接口
+局域网测试：
 
-- `POST /scene_serial`
-- `POST /scene_story_serial`
-- `POST /chat`
+```text
+http://你的电脑IP:8000/docs
+```
 
-实际联调推荐使用：
-
-- `POST /scene_story_serial`
+如果手机打不开局域网地址，ESP32 通常也无法连接后端。
 
 ---
 
-## 七、最短上手流程
+## 6. 语音系统说明
 
-### 方案 A：只验证 STM32 UI
+当前语音逻辑使用：
 
-1. 用 `μVision` 打开工程
-2. 编译并烧录 STM32
-3. 检查封面页、场景页、对话页是否正常显示
+[manbo_speech.py](D:/2025-2026-2/FPGA/CubeIDE/STM32_AI_Character/manbo_speech.py)
 
-### 方案 B：STM32 + ESP32
+主要流程如下：
 
-1. 编译并烧录 STM32
-2. 配置并烧录 ESP32 `.ino`
-3. 接好串口线
-4. 观察 ESP32 串口监视器日志
+1. 后端根据 AI 回复文本和情绪标签调用 TTS
+2. 语音文件生成到 `audio/` 目录
+3. FastAPI 通过 `/audio` 暴露静态资源
+4. ESP32 获取 `audio_url`
+5. ESP32 通过 I2S + 功放模块播放
 
-### 方案 C：完整联调
+当前按情绪映射不同参考音色模型，例如：
 
-1. 启动 FastAPI
-2. 烧录 ESP32
-3. 烧录 STM32
-4. 进入任意场景
-5. 检查动态回复、动态选项和头像状态是否正常
+- `happy`
+- `shy`
+- `gentle`
+- `curious`
+- `thinking`
 
 ---
 
-## 八、常见问题
+## 7. 编译与运行
 
-### 1. μVision 能编译，但烧录后没反应
+### 7.1 STM32
+
+打开工程：
+
+[BH-F103.uvprojx](D:/2025-2026-2/FPGA/CubeIDE/STM32_AI_Character/μVision_AI_character/Project/RVMDK（uv5）/BH-F103.uvprojx)
+
+环境建议：
+
+- `Keil MDK-ARM / μVision5`
+- `ARM Compiler 5`
+- 已验证版本：`V5.06 update 6 (build 750)`
+
+编译步骤：
+
+1. 打开 `BH-F103.uvprojx`
+2. 选择 `Target: LDC`
+3. 点击 `Rebuild`
+4. 下载到开发板
+
+### 7.2 ESP32
+
+使用 Arduino IDE 或 PlatformIO：
+
+1. 打开 `STM32_AI_Bridge.ino`
+2. 修改 Wi-Fi 和 `API_BASE_URL`
+3. 确认音频模块接线
+4. 烧录 ESP32
+5. 打开串口监视器，波特率 `115200`
+
+正常日志应类似：
+
+```text
+[bridge] boot
+[bridge] uart2 baud=115200
+[bridge] connecting wifi...
+[bridge] wifi ok, ip=...
+```
+
+### 7.3 联调顺序
+
+推荐顺序：
+
+1. 先编译并运行 STM32，确认本地 UI 正常
+2. 启动 FastAPI 后端
+3. 用手机测试 `http://电脑IP:8000/docs`
+4. 烧录并启动 ESP32
+5. 最后连接 STM32 和 ESP32 联调
+
+---
+
+## 8. 常见问题
+
+### 8.1 STM32 只显示默认回复
+
+常见原因：
+
+- ESP32 没有成功访问后端
+- 串口回包不完整
+- 回包解析失败
+- 网络异常时系统进入本地兜底
 
 优先检查：
 
-- `ST-Link` 连接
-- 板子供电
-- `Connect under Reset`
-- 下载算法是否正确
+- 串口监视器是否有 `HTTP error`
+- `API_BASE_URL` 是否正确
+- 手机能否访问 `http://电脑IP:8000/docs`
 
-### 2. ESP32 串口监视器出现 `http failed, status=-1`
+### 8.2 ESP32 串口显示 `HTTP error:-1`
 
-通常是后端地址或局域网问题，请检查：
+这通常表示：
 
-- `API_BASE_URL`
-- 电脑当前局域网 IP
-- `uvicorn` 是否使用 `0.0.0.0`
-- Windows 防火墙是否放行 `8000`
+- 后端没启动
+- `API_BASE_URL` 地址错误
+- 电脑防火墙拦住了 `8000`
+- ESP32 和电脑不在同一局域网
 
-### 3. STM32 屏幕内容与 ESP32 日志不一致
+### 8.3 中文乱码
 
-优先检查：
+当前工程采用 GBK 兼容策略：
 
-- TX/RX 是否交叉连接
-- 是否使用当前仓库里的 `USART2` 版本固件
-- STM32 是否真的烧录到最新固件
+- 后端返回 `reply_gbk_hex`
+- ESP32 将十六进制还原成字节流
+- STM32 按协议解析显示
 
-### 4. 中文出现乱码
+如果又出现乱码，优先检查：
 
-当前 STM32 侧依赖 `GBK` 路径显示中文。若出现乱码，请检查：
-
-- STM32 是否烧录了最新固件
-- ESP32 bridge 是否与当前仓库版本一致
-- 串口回包是否仍符合当前协议
+- 后端是否仍在返回 `reply_gbk_hex` / `options_gbk_hex`
+- ESP32 是否仍使用 `buildSerialPacketFromHex`
+- STM32 是否错误回退到旧的解析逻辑
 
 ---
 
-## 九、当前项目状态
 
-当前仓库更偏向“可演示原型”，而不是最终产品封装版。
+---
 
-已经具备：
+## 9. 后续扩展方向
 
-- STM32 模块化 UI 与交互逻辑
-- ESP32 串口桥接
-- FastAPI + LLM 动态对话
-- 场景化多轮选项交互
-- ESP32 GET云端mp3文件 + MAX98357A播放
+当前架构已经适合继续扩展：
 
-后续可继续扩展：
-
-- 好感度与情绪记忆模块
 - 视觉感知模块
-- 剧情分支模块
+- 好感度与长期记忆
+- 更丰富的剧情分支
+- 更完整的角色人格系统
+- 更细腻的 UI 动画与情绪演出
 
----
 
-## 十、建议提交前自检
 
-如果你准备把仓库交给其他人使用，建议先确认：
-
-1. `BH-F103.uvprojx` 能在本机 `μVision` 正常打开
-2. `LDC` Target 能直接编译通过
-3. `.env.example` 内容完整
-4. `STM32_AI_Bridge.ino` 中的 Wi-Fi 和 IP 配置清晰
-5. README 中的路径与仓库结构一致
 
